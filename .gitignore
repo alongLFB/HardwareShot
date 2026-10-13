@@ -1,0 +1,31 @@
+# Python 缓存与编译产物
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# 虚拟环境
+.venv/
+venv/
+env/
+ENV/
+
+# PyInstaller 打包产物
+build/
+dist/
+*.spec
+app.ico
+
+# 测试与临时输出
+out/
+*.log
+
+# IDE 与编辑器配置
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Windows 系统文件
+Thumbs.db
+Desktop.ini
