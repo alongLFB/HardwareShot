@@ -8,18 +8,69 @@ from PIL import Image, ImageDraw, ImageFont
 SC = 2  # 输出放大倍数(逻辑宽 860px -> 实际 1720px,清晰度更好)
 
 THEMES = {
-    '科技蓝': dict(bg=(8, 62, 168), card=(13, 84, 212), text=(255, 255, 255), sub=(184, 212, 255),
-                 accent=(124, 214, 255), divider=(44, 112, 232), hdr1=(0, 98, 255), hdr2=(0, 190, 255),
-                 diff=(31, 108, 224), good=(34, 197, 94), bar_bg=(8, 62, 168), chip=(44, 112, 232),
-                 ca=(103, 232, 249), cb=(251, 146, 60)),
-    '深色': dict(bg=(15, 18, 28), card=(26, 31, 46), text=(235, 240, 250), sub=(140, 152, 175),
-               accent=(86, 170, 255), divider=(44, 51, 72), hdr1=(37, 99, 235), hdr2=(124, 58, 237),
-               diff=(70, 56, 22), good=(34, 197, 94), bar_bg=(15, 18, 28), chip=(44, 51, 72),
-               ca=(96, 165, 250), cb=(251, 146, 60)),
-    '浅色': dict(bg=(238, 242, 249), card=(255, 255, 255), text=(24, 32, 48), sub=(108, 119, 140),
-               accent=(22, 119, 255), divider=(230, 234, 242), hdr1=(22, 119, 255), hdr2=(0, 200, 255),
-               diff=(255, 243, 210), good=(22, 163, 74), bar_bg=(236, 240, 247), chip=(230, 236, 246),
-               ca=(59, 130, 246), cb=(249, 115, 22)),
+    '科技蓝': dict(bg=(8, 62, 168), card=(13, 84, 212), card_border=(30, 102, 235),
+                 text=(255, 255, 255), sub=(184, 212, 255), accent=(124, 214, 255),
+                 divider=(44, 112, 232), hdr1=(0, 98, 255), hdr2=(0, 190, 255),
+                 hdr_sub=(214, 234, 255), diff=(31, 108, 224), good=(34, 197, 94),
+                 bar_bg=(8, 62, 168), chip=(44, 112, 232), ca=(103, 232, 249), cb=(251, 146, 60),
+                 ca_pill_fg=(0, 84, 214), ca_pill_bg=(255, 255, 255),
+                 cb_pill_fg=(255, 255, 255), cb_pill_bg=(249, 115, 22)),
+
+    '赛博朋克': dict(bg=(14, 15, 25), card=(23, 24, 39), card_border=(64, 52, 92),
+                 text=(245, 248, 255), sub=(145, 148, 180), accent=(0, 240, 255),
+                 divider=(44, 42, 70), hdr1=(225, 0, 105), hdr2=(0, 210, 255),
+                 hdr_sub=(242, 228, 255), diff=(52, 25, 70), good=(0, 230, 150),
+                 bar_bg=(16, 17, 30), chip=(54, 44, 84), ca=(0, 240, 255), cb=(255, 36, 125),
+                 ca_pill_fg=(14, 15, 25), ca_pill_bg=(0, 240, 255),
+                 cb_pill_fg=(255, 255, 255), cb_pill_bg=(255, 36, 125)),
+
+    'ROG电竞': dict(bg=(16, 17, 21), card=(26, 27, 34), card_border=(62, 28, 36),
+                 text=(248, 249, 250), sub=(148, 152, 164), accent=(255, 38, 66),
+                 divider=(46, 48, 60), hdr1=(195, 14, 42), hdr2=(48, 12, 22),
+                 hdr_sub=(255, 204, 212), diff=(58, 18, 26), good=(34, 197, 94),
+                 bar_bg=(16, 17, 22), chip=(56, 26, 34), ca=(255, 42, 72), cb=(245, 158, 11),
+                 ca_pill_fg=(255, 255, 255), ca_pill_bg=(220, 20, 50),
+                 cb_pill_fg=(16, 17, 21), cb_pill_bg=(245, 158, 11)),
+
+    '极客绿': dict(bg=(11, 15, 13), card=(18, 25, 21), card_border=(32, 54, 42),
+                text=(240, 252, 245), sub=(128, 156, 140), accent=(0, 230, 118),
+                divider=(30, 44, 36), hdr1=(8, 72, 44), hdr2=(0, 185, 95),
+                hdr_sub=(196, 248, 220), diff=(24, 52, 36), good=(0, 230, 118),
+                bar_bg=(13, 18, 15), chip=(28, 50, 38), ca=(0, 230, 118), cb=(56, 189, 248),
+                ca_pill_fg=(11, 15, 13), ca_pill_bg=(0, 230, 118),
+                cb_pill_fg=(11, 15, 13), cb_pill_bg=(56, 189, 248)),
+
+    '黑金奢华': dict(bg=(18, 17, 16), card=(28, 26, 24), card_border=(62, 52, 40),
+                 text=(250, 246, 238), sub=(162, 150, 135), accent=(234, 179, 8),
+                 divider=(48, 44, 38), hdr1=(142, 96, 26), hdr2=(224, 168, 38),
+                 hdr_sub=(255, 238, 204), diff=(48, 38, 22), good=(52, 211, 153),
+                 bar_bg=(16, 15, 14), chip=(54, 46, 34), ca=(234, 179, 8), cb=(203, 213, 225),
+                 ca_pill_fg=(18, 17, 16), ca_pill_bg=(234, 179, 8),
+                 cb_pill_fg=(18, 17, 16), cb_pill_bg=(203, 213, 225)),
+
+    '深色': dict(bg=(15, 18, 28), card=(26, 31, 46), card_border=(42, 49, 70),
+               text=(235, 240, 250), sub=(140, 152, 175), accent=(96, 165, 250),
+               divider=(44, 51, 72), hdr1=(37, 99, 235), hdr2=(124, 58, 237),
+               hdr_sub=(210, 225, 255), diff=(48, 38, 20), good=(34, 197, 94),
+               bar_bg=(15, 18, 28), chip=(44, 51, 72), ca=(96, 165, 250), cb=(251, 146, 60),
+               ca_pill_fg=(15, 18, 28), ca_pill_bg=(96, 165, 250),
+               cb_pill_fg=(255, 255, 255), cb_pill_bg=(251, 146, 60)),
+
+    '冰川极光': dict(bg=(238, 245, 252), card=(255, 255, 255), card_border=(216, 228, 242),
+                 text=(16, 28, 46), sub=(96, 114, 140), accent=(14, 138, 232),
+                 divider=(226, 236, 248), hdr1=(2, 132, 199), hdr2=(56, 189, 248),
+                 hdr_sub=(224, 246, 255), diff=(232, 244, 255), good=(16, 185, 129),
+                 bar_bg=(228, 238, 248), chip=(220, 234, 248), ca=(14, 138, 232), cb=(244, 63, 94),
+                 ca_pill_fg=(255, 255, 255), ca_pill_bg=(14, 138, 232),
+                 cb_pill_fg=(255, 255, 255), cb_pill_bg=(244, 63, 94)),
+
+    '浅色': dict(bg=(240, 244, 250), card=(255, 255, 255), card_border=(226, 232, 240),
+               text=(24, 32, 48), sub=(108, 119, 140), accent=(22, 119, 255),
+               divider=(230, 234, 242), hdr1=(22, 119, 255), hdr2=(0, 195, 255),
+               hdr_sub=(225, 242, 255), diff=(254, 243, 199), good=(22, 163, 74),
+               bar_bg=(236, 240, 247), chip=(230, 236, 246), ca=(37, 99, 235), cb=(234, 88, 12),
+               ca_pill_fg=(255, 255, 255), ca_pill_bg=(37, 99, 235),
+               cb_pill_fg=(255, 255, 255), cb_pill_bg=(234, 88, 12)),
 }
 WHITE = (255, 255, 255)
 
@@ -134,17 +185,18 @@ def execute(dl, W, H, bg):
 # ---------------------------------------------------------------- 公共部件
 def _header(dl, W, th, title, subtitle_fn, h=150):
     dl.add('grad', 0, 0, W, h, th['hdr1'], th['hdr2'])
-    dl.text(28, 26, 'HARDWARE REPORT', 12, (214, 234, 255), True)
+    dl.text(28, 26, 'HARDWARE REPORT', 12, th.get('hdr_sub', (214, 234, 255)), True)
     dl.text(28, 48, title, 30, WHITE, True)
     subtitle_fn(dl, 28, 100)
     # 右侧装饰:显示器图标
     mx, my = W - 28 - 96, 36
-    dl.rrect(mx, my, mx + 96, my + 62, 9, None, (255, 255, 255), 3)
+    icon_col = th.get('hdr_icon', WHITE)
+    dl.rrect(mx, my, mx + 96, my + 62, 9, None, icon_col, 3)
     for i, bh in enumerate((20, 34, 26, 40)):
         x = mx + 16 + i * 18
-        dl.rrect(x, my + 50 - bh, x + 10, my + 50, 3, (255, 255, 255))
-    dl.add('line', mx + 48, my + 62, mx + 48, my + 76, (255, 255, 255), 3)
-    dl.add('line', mx + 28, my + 78, mx + 68, my + 78, (255, 255, 255), 3)
+        dl.rrect(x, my + 50 - bh, x + 10, my + 50, 3, icon_col)
+    dl.add('line', mx + 48, my + 62, mx + 48, my + 76, icon_col, 3)
+    dl.add('line', mx + 28, my + 78, mx + 68, my + 78, icon_col, 3)
 
 
 def _footer(dl, W, y, th, text):
@@ -166,7 +218,7 @@ def render_report(rep, theme='科技蓝', detail=True):
     title = f'{nick} 的电脑配置' if nick else '电脑硬件配置'
 
     def sub(dl_, x, y):
-        dl_.text(x, y, f'{hd.get("model", "")}   ·   扫描于 {rep.get("scan_time", "")}', 15, (232, 244, 255))
+        dl_.text(x, y, f'{hd.get("model", "")}   ·   扫描于 {rep.get("scan_time", "")}', 15, th.get('hdr_sub', (232, 244, 255)))
 
     _header(dl, W, th, title, sub)
     y = 150 + 22
@@ -182,9 +234,10 @@ def render_report(rep, theme='科技蓝', detail=True):
         dlines = wrap(det, 12, cw - 32) if det else []
         prepared.append((lab, vl, dlines))
     ch = 18 + 22 + max(len(v) * 25 + (len(dd) * 18 + 4 if dd else 0) for _, v, dd in prepared) + 14
+    border = th.get('card_border')
     for i, (lab, vl, dlines) in enumerate(prepared):
         x = PAD + i * (cw + gap)
-        dl.rrect(x, y, x + cw, y + ch, 12, th['card'])
+        dl.rrect(x, y, x + cw, y + ch, 12, th['card'], outline=border)
         dl.add('ellipse', x + 16, y + 22, x + 24, y + 30, th['accent'])
         dl.text(x + 32, y + 15, lab, 14, th['sub'])
         yy = y + 46
@@ -198,7 +251,7 @@ def render_report(rep, theme='科技蓝', detail=True):
 
     # 详细信息卡片
     top = y
-    bg_idx = dl.rrect(PAD, top, W - PAD, top + 10, 12, th['card'])
+    bg_idx = dl.rrect(PAD, top, W - PAD, top + 10, 12, th['card'], outline=border)
     dl.text(PAD + 22, top + 18, '详细信息', 18, th['text'], True)
     y = top + 58
     x0 = PAD + 22
@@ -223,7 +276,7 @@ def render_report(rep, theme='科技蓝', detail=True):
             dl.add('line', x0, y, W - PAD - 22, y, th['divider'], 1)
             y += 14
     y += 22
-    dl.ops[bg_idx] = ('rrect', PAD, top, W - PAD, y, 12, th['card'], None, 1)
+    dl.ops[bg_idx] = ('rrect', PAD, top, W - PAD, y, 12, th['card'], border, 1)
     y = _footer(dl, W, y + 20, th, f'由「硬件配置助手」生成  ·  {rep.get("scan_time", "")}')
     return execute(dl, W, y, th['bg'])
 
@@ -247,19 +300,20 @@ def render_compare(a, b, theme='科技蓝', detail=True):
     dl = DL()
 
     def sub(dl_, x, y):
-        wa = dl_.pill(x, y - 4, na, 15, (0, 84, 214), WHITE, True, 14, 28)
+        wa = dl_.pill(x, y - 4, na, 15, th.get('ca_pill_fg', (0, 84, 214)), th.get('ca_pill_bg', WHITE), True, 14, 28)
         dl_.text(x + wa + 14, y - 1, 'VS', 15, WHITE, True)
-        dl_.pill(x + wa + 14 + tw('VS', 15, True) + 14, y - 4, nb, 15, WHITE, (249, 115, 22), True, 14, 28)
+        dl_.pill(x + wa + 14 + tw('VS', 15, True) + 14, y - 4, nb, 15, th.get('cb_pill_fg', WHITE), th.get('cb_pill_bg', (249, 115, 22)), True, 14, 28)
 
     _header(dl, W, th, '硬件配置对比', sub)
     y = 150 + 22
 
     # --- 关键指标条形图
+    border = th.get('card_border')
     ma, mb = a.get('metrics', {}), b.get('metrics', {})
     rows = [(k, l, u, ma.get(k, 0), mb.get(k, 0)) for k, l, u in METRICS if ma.get(k, 0) or mb.get(k, 0)]
     if rows:
         top = y
-        idx = dl.rrect(PAD, top, W - PAD, top + 10, 12, th['card'])
+        idx = dl.rrect(PAD, top, W - PAD, top + 10, 12, th['card'], outline=border)
         dl.text(PAD + 22, top + 18, '关键指标对比', 18, th['text'], True)
         y = top + 60
         x0 = PAD + 22
@@ -281,7 +335,7 @@ def render_compare(a, b, theme='科技蓝', detail=True):
                     dl.pill(tx, by + 3, '更高', 11, WHITE, th['good'], True, 7, 17)
             y += 66
         y += 4
-        dl.ops[idx] = ('rrect', PAD, top, W - PAD, y, 12, th['card'], None, 1)
+        dl.ops[idx] = ('rrect', PAD, top, W - PAD, y, 12, th['card'], border, 1)
         y += 16
 
     # --- 详细配置对比
@@ -293,7 +347,7 @@ def render_compare(a, b, theme='科技蓝', detail=True):
             keys.append(i['key'])
     diffs = 0
     top = y
-    idx = dl.rrect(PAD, top, W - PAD, top + 10, 12, th['card'])
+    idx = dl.rrect(PAD, top, W - PAD, top + 10, 12, th['card'], outline=border)
     dl.text(PAD + 22, top + 18, '详细配置对比', 18, th['text'], True)
     sum_idx = dl.add('text', 0, 0, '', 14, th['sub'], False, 'ra')
     x0 = PAD + 22
@@ -345,7 +399,7 @@ def render_compare(a, b, theme='科技蓝', detail=True):
             yy += rh
         y += total + 18
     y += 6
-    dl.ops[idx] = ('rrect', PAD, top, W - PAD, y, 12, th['card'], None, 1)
+    dl.ops[idx] = ('rrect', PAD, top, W - PAD, y, 12, th['card'], border, 1)
     dl.ops[sum_idx] = ('text', W - PAD - 22, top + 22, f'共 {len(keys)} 类硬件,{diffs} 类不同', 14, th['sub'], False, 'ra')
     y = _footer(dl, W, y + 20, th, f'由「硬件配置助手」生成  ·  {a.get("scan_time", "")}')
     return execute(dl, W, y, th['bg'])

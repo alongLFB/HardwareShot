@@ -173,9 +173,18 @@ class App:
         box = tk.Frame(side, bg=SIDE_BG)
         box.pack(fill='x', padx=px(16))
         tk.Label(box, text='昵称(显示在图上)', bg=SIDE_BG, fg='#A9C8FF', font=f(9)).pack(anchor='w')
-        self.nick_var = tk.StringVar(value=self.s.get('nickname', ''))
+        self.nick_var = tk.StringVar(value=self.s.get('nickname') or winutil.default_nickname())
         e = tk.Entry(box, textvariable=self.nick_var, font=f(10), relief='flat', bd=0)
         e.pack(fill='x', ipady=px(4), pady=(px(2), px(8)))
+
+        self._nick_timer = None
+
+        def _on_nick_edit(ev=None):
+            if self._nick_timer:
+                self.root.after_cancel(self._nick_timer)
+            self._nick_timer = self.root.after(400, self.on_option_change)
+
+        e.bind('<KeyRelease>', _on_nick_edit)
         e.bind('<Return>', lambda ev: self.on_option_change())
         e.bind('<FocusOut>', lambda ev: self.on_option_change())
         tk.Label(box, text='长图主题', bg=SIDE_BG, fg='#A9C8FF', font=f(9)).pack(anchor='w')
@@ -338,6 +347,7 @@ class App:
         return f'{prefix}{"_" + nick if nick else ""}_{ts}.{ext}'
 
     def save_image(self):
+        self.on_option_change()
         if self.cur_img is None:
             return self.set_status('还没有可保存的内容,请先扫描')
         os.makedirs(self.s['save_dir'], exist_ok=True)
@@ -356,6 +366,7 @@ class App:
             return f'  (复制剪贴板失败:{ex})'
 
     def copy_image(self):
+        self.on_option_change()
         if self.cur_img is None:
             return self.set_status('还没有可复制的内容,请先扫描')
         self.set_status('长图' + self._try_copy(self.cur_img).strip())

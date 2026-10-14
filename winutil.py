@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Windows 相关的小工具:DPI、剪贴板图片、打开资源管理器、设置读写。"""
 import ctypes
+import getpass
 import io
 import json
 import os
@@ -75,11 +76,24 @@ def default_save_dir():
     return os.path.join(base, '硬件配置')
 
 
+def default_nickname():
+    """获取 Windows 当前系统用户名作为默认昵称"""
+    try:
+        name = getpass.getuser()
+    except Exception:
+        name = os.environ.get('USERNAME') or os.environ.get('USER') or ''
+    return (name or '').strip()
+
+
 def load_settings():
-    s = {'save_dir': default_save_dir(), 'nickname': '', 'theme': '科技蓝', 'detail': True, 'auto_copy': True}
+    def_nick = default_nickname()
+    s = {'save_dir': default_save_dir(), 'nickname': def_nick, 'theme': '科技蓝', 'detail': True, 'auto_copy': True}
     try:
         with open(settings_path(), encoding='utf-8') as f:
-            s.update(json.load(f))
+            data = json.load(f)
+            s.update(data)
+            if not (s.get('nickname') or '').strip():
+                s['nickname'] = def_nick
     except Exception:
         pass
     return s
