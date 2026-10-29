@@ -386,8 +386,11 @@ def render_report(rep, theme='科技蓝', detail=True, show_price=True):
             for ln in wrap(row['t'], 16, row_maxw, True):
                 dl.text(vx, yy, ln, 16, th['text'], True)
                 yy += 24
-            if detail and row.get('d'):
-                for ln in wrap(row['d'], 13, xr - vx):
+            det_str = row.get('d') or ''
+            if show_price and ev.get('reason'):
+                det_str = f'{det_str}  ·  估值说明: {ev["reason"]}' if det_str else f'估值说明: {ev["reason"]}'
+            if detail and det_str:
+                for ln in wrap(det_str, 13, xr - vx):
                     dl.text(vx, yy, ln, 13, th['sub'])
                     yy += 19
             # CPU / GPU 内嵌天梯定位条

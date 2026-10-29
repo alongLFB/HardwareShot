@@ -4,6 +4,7 @@ import datetime
 import json
 import re
 import ssl
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -20,11 +21,12 @@ TIERS = {
 
 # 预设 AI 服务商: 名称 -> (默认 API Base, 默认 Model, 是否支持 enable_search 参数)
 AI_PROVIDERS = {
+    'OpenAI (GPT-5 / 官方接口)': ('https://api.openai.com/v1', 'gpt-5.6-luna', False),
     '通义千问 (百炼·支持联网)': ('https://dashscope.aliyuncs.com/compatible-mode/v1', 'qwen-plus', True),
     'DeepSeek (深度求索)': ('https://api.deepseek.com', 'deepseek-chat', False),
     'Kimi (Moonshot)': ('https://api.moonshot.cn/v1', 'moonshot-v1-8k', False),
     '硅基流动 (SiliconFlow)': ('https://api.siliconflow.cn/v1', 'deepseek-ai/DeepSeek-V3', False),
-    '自定义 OpenAI 兼容接口': ('https://api.openai.com/v1', 'gpt-4o-mini', False),
+    '自定义 OpenAI 兼容接口': ('https://api.openai.com/v1', 'gpt-5.6-luna', False),
 }
 
 # ---------------------------------------------------------------- CPU 天梯榜与价格库
@@ -883,8 +885,6 @@ def lookup_via_ai(rep, settings, progress_cb=None):
                 'category': it.get('label', k),
                 'model': r.get('t', ''),
                 'detail': r.get('d', ''),
-                'fallback_used': ev.get('used', 0),
-                'fallback_new': ev.get('new', 0),
             })
             row_refs.append((k, r.get('t', '')))
 
@@ -895,52 +895,93 @@ def lookup_via_ai(rep, settings, progress_cb=None):
         'category': '机电散/模具附加',
         'model': extra_label,
         'detail': f'整机类型: {rep.get("header", {}).get("model", "台式电脑")}',
-        'fallback_used': val.get('extra_used', 400),
-        'fallback_new': val.get('extra_new', 700),
     })
     row_refs.append(('extra', extra_label))
 
     if progress_cb:
-        progress_cb(f'正在请求 AI 大模型 ({model}) 联网评估 {len(hw_list)} 项硬件行情…')
+        progress_cb(f'正在请求 AI 大模型 ({model}) 实时联网检索 {len(hw_list)} 项硬件最新价格…')
 
     prompt = (
-        '你是一位精通中国大陆二手硬件市场(闲鱼/转转)和全新电商市场(京东/淘宝装机店)的资深硬件估价师。\n'
-        '请根据以下扫描到的电脑硬件列表,结合当前最新市场行情,为每一项硬件评估合理的【闲鱼二手流通均价(used,单位人民币元,整数)】和【全新电商/同级新件参考价(new,单位人民币元,整数)】。\n'
-        '注意:\n'
-        '1. 仔细识别高端特种型号溢价(如卓威ZOWIE 240Hz/360Hz电竞显示器、三星990 PRO、ROG吹雪/猛禽、海盗船DDR5灯条、技嘉/华硕非公4090等)。\n'
-        '2. 主板集成的有线网卡估价填0;独立Wi-Fi无线网卡按实际价值填。\n'
-        '3. 严格只输出如下 JSON 数组格式,不要输出任何多余解释文字:\n'
-        '[{"id": 0, "used": 1450, "new": 1999, "reason": "简短行情说明(15字内)"}, ...]\n\n'
+        '你是一位精通全球及中国大陆硬件市场的资深估价师。\n'
+        '请务必先使用联网搜索工具(web search)检索以下电脑硬件在当前(2026年最新)的实时电商价格与二手流通行情(综合参考京东/淘宝/闲鱼及Amazon等最新实时在售价格,特别注意近期闪存/SSD、DDR5内存、高端显卡如RTX 4090/5090、三星990 PRO、卓威ZOWIE电竞屏等的最新涨跌与溢价情况,切勿使用过时的历史低价)。\n'
+        '请为每一项硬件评估当前合理的:\n'
+        '- used: 二手市场流通均价(折合人民币元,整数)\n'
+        '- new: 当前全新电商/在售新件实际到手价(折合人民币元,整数)\n'
+        '注意:主板集成的有线网卡估价填0;独立Wi-Fi无线网卡按实际价值填。\n'
+        '严格只输出如下 JSON 数组格式,不要输出任何多余解释或Markdown代码块以外的文字:\n'
+        '[{"id": 0, "used": 1450, "new": 1999, "reason": "实时行情说明(18字内)"}, ...]\n\n'
         f'待估价硬件列表:\n{json.dumps(hw_list, ensure_ascii=False)}'
     )
 
-    body = {
-        'model': model,
-        'messages': [
-            {'role': 'system', 'content': '你只输出合法的 JSON 数组。'},
-            {'role': 'user', 'content': prompt},
-        ],
-        'temperature': 0.2,
-    }
-    if 'dashscope.aliyuncs.com' in api_base:
-        body['enable_search'] = True
-
-    url = api_base if api_base.endswith('/chat/completions') else f'{api_base}/chat/completions'
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(body).encode('utf-8'),
-        headers={
-            'Content-Type': 'application/json',
-            'Authorization': f'Bearer {api_key}',
-            'User-Agent': 'HardwareShot/2.0',
-        },
-        method='POST',
-    )
     ctx = ssl.create_default_context()
-    with urllib.request.urlopen(req, timeout=35, context=ctx) as resp:
-        res_data = json.loads(resp.read().decode('utf-8', 'replace'))
+    content = ''
 
-    content = res_data['choices'][0]['message']['content'].strip()
+    # 若为 OpenAI 官方接口,优先调用支持原生实时网页搜索(web_search_preview)的 /v1/responses 接口
+    if 'api.openai.com' in api_base:
+        resp_url = re.sub(r'/chat/completions$', '', api_base) + '/responses'
+        resp_body = {
+            'model': model,
+            'tools': [{'type': 'web_search_preview'}],
+            'input': prompt,
+        }
+        req_r = urllib.request.Request(
+            resp_url,
+            data=json.dumps(resp_body).encode('utf-8'),
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {api_key}',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) HardwareShot/2.0',
+            },
+            method='POST',
+        )
+        try:
+            with urllib.request.urlopen(req_r, timeout=90, context=ctx) as resp:
+                r_data = json.loads(resp.read().decode('utf-8', 'replace'))
+            for out_item in r_data.get('output', []):
+                if out_item.get('type') == 'message':
+                    for c_part in out_item.get('content', []):
+                        if c_part.get('text'):
+                            content += c_part['text'] + '\n'
+            content = content.strip()
+        except Exception:
+            content = ''
+
+    # 回退或非 OpenAI 官方接口: 使用标准 /chat/completions
+    if not content:
+        body = {
+            'model': model,
+            'messages': [
+                {'role': 'system', 'content': '你只输出合法的 JSON 数组。'},
+                {'role': 'user', 'content': prompt},
+            ],
+        }
+        if 'dashscope.aliyuncs.com' in api_base:
+            body['enable_search'] = True
+
+        url = api_base if api_base.endswith('/chat/completions') else f'{api_base}/chat/completions'
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(body).encode('utf-8'),
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {api_key}',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) HardwareShot/2.0',
+            },
+            method='POST',
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=75, context=ctx) as resp:
+                res_data = json.loads(resp.read().decode('utf-8', 'replace'))
+            content = res_data['choices'][0]['message']['content'].strip()
+        except urllib.error.HTTPError as he:
+            err_body = ''
+            try:
+                err_json = json.loads(he.read().decode('utf-8', 'replace'))
+                err_body = err_json.get('error', {}).get('message') or str(err_json)
+            except Exception:
+                pass
+            raise RuntimeError(f'HTTP {he.code}: {err_body or he.reason}') from he
+
     m_json = re.search(r'\[.*\]', content, re.S)
     if not m_json:
         raise RuntimeError('AI 返回格式未能解析为 JSON 数组')
