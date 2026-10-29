@@ -9,6 +9,8 @@ import re
 import subprocess
 from ctypes import wintypes
 
+import market
+
 SCHEMA = 1
 
 PS_SCRIPT = r'''
@@ -541,10 +543,11 @@ def collect(nickname=''):
         ('net', '网卡', build_net(raw)),
         ('sound', '声卡', build_sound(raw)),
     ]
-    return {
+    rep = {
         'app': 'HardwareShot', 'schema': SCHEMA, 'nickname': nickname,
         'scan_time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M'),
         'header': build_header(raw),
         'items': [{'key': k, 'label': l, 'rows': r} for k, l, r in items if r],
         'metrics': metrics,
     }
+    return market.enrich(rep)

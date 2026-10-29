@@ -247,31 +247,34 @@ class App:
         side = tk.Frame(self.root, bg=SIDE_BG, width=px(236))
         side.pack(side='left', fill='y')
         side.pack_propagate(False)
-        tk.Label(side, text=APP_NAME, bg=SIDE_BG, fg='white', font=f(17, True)).pack(anchor='w', padx=px(20), pady=(px(22), 0))
-        tk.Label(side, text='扫描 · 长图 · 一键对比', bg=SIDE_BG, fg='#A9C8FF', font=f(9)).pack(anchor='w', padx=px(20), pady=(px(2), px(14)))
+        tk.Label(side, text=APP_NAME, bg=SIDE_BG, fg='white', font=f(17, True)).pack(anchor='w', padx=px(20), pady=(px(18), 0))
+        tk.Label(side, text='扫描 · 估值 · 天梯 · 对比', bg=SIDE_BG, fg='#A9C8FF', font=f(9)).pack(anchor='w', padx=px(20), pady=(px(2), px(10)))
 
         def btn(text, cmd, primary=False):
             b = FlatButton(side, text, cmd, GREEN if primary else SIDE_BG, GREEN_HOVER if primary else SIDE_HOVER,
-                           font=f(11, primary), padx=px(16), pady=px(5))
-            b.pack(fill='x', padx=px(10) if primary else 0, pady=(px(2), px(2)))
+                           font=f(10, primary), padx=px(16), pady=px(4))
+            b.pack(fill='x', padx=px(10) if primary else 0, pady=(px(1), px(1)))
             return b
 
         self.btn_scan = btn('重新扫描   F5', self.start_scan)
-        btn('保存配置长图   F2', self.save_image, True)
+        btn('保存当前长图   F2', self.save_image, True)
         btn('复制长图到剪贴板   F3', self.copy_image)
         btn('区域截图   F4', self.region_shot)
-        tk.Frame(side, bg='#2C74F0', height=1).pack(fill='x', padx=px(16), pady=px(8))
+        tk.Frame(side, bg='#2C74F0', height=1).pack(fill='x', padx=px(16), pady=px(6))
+        btn('CPU 性能天梯榜', lambda: self.show_ladder('cpu'))
+        btn('显卡 (GPU) 性能天梯榜', lambda: self.show_ladder('gpu'))
+        tk.Frame(side, bg='#2C74F0', height=1).pack(fill='x', padx=px(16), pady=px(6))
         btn('导出配置文件 (.json)', self.export_json)
         btn('导入好友配置 → 对比', self.import_friend)
         btn('返回本机配置', self.back_local)
-        tk.Frame(side, bg='#2C74F0', height=1).pack(fill='x', padx=px(16), pady=px(8))
+        tk.Frame(side, bg='#2C74F0', height=1).pack(fill='x', padx=px(16), pady=px(6))
 
         box = tk.Frame(side, bg=SIDE_BG)
         box.pack(fill='x', padx=px(16))
         tk.Label(box, text='昵称(显示在图上)', bg=SIDE_BG, fg='#A9C8FF', font=f(9)).pack(anchor='w')
         self.nick_var = tk.StringVar(value=self.s.get('nickname') or winutil.default_nickname())
         e = tk.Entry(box, textvariable=self.nick_var, font=f(10), relief='flat', bd=0)
-        e.pack(fill='x', ipady=px(4), pady=(px(2), px(8)))
+        e.pack(fill='x', ipady=px(3), pady=(px(2), px(6)))
 
         self._nick_timer = None
 
@@ -286,11 +289,16 @@ class App:
         tk.Label(box, text='长图主题', bg=SIDE_BG, fg='#A9C8FF', font=f(9)).pack(anchor='w')
         self.theme_var = tk.StringVar(value=self.s.get('theme', '科技蓝'))
         cb = ttk.Combobox(box, textvariable=self.theme_var, values=list(renderer.THEMES), state='readonly', font=f(10))
-        cb.pack(fill='x', pady=(px(2), px(6)))
+        cb.pack(fill='x', pady=(px(2), px(4)))
         cb.bind('<<ComboboxSelected>>', lambda ev: self.on_option_change())
+        self.price_var = tk.BooleanVar(value=self.s.get('show_price', True))
         self.detail_var = tk.BooleanVar(value=self.s.get('detail', True))
         self.copy_var = tk.BooleanVar(value=self.s.get('auto_copy', True))
-        for text, var in (('显示详细信息(频率/驱动等)', self.detail_var), ('保存时同时复制到剪贴板', self.copy_var)):
+        for text, var in (
+            ('显示市场价格估值(二手/全新)', self.price_var),
+            ('显示详细信息(频率/驱动等)', self.detail_var),
+            ('保存时同时复制到剪贴板', self.copy_var),
+        ):
             tk.Checkbutton(box, text=text, variable=var, command=self.on_option_change, bg=SIDE_BG, fg='white',
                            activebackground=SIDE_BG, activeforeground='white', selectcolor='#083E9E',
                            font=f(9), anchor='w', bd=0, highlightthickness=0).pack(fill='x', anchor='w')
@@ -348,12 +356,13 @@ class App:
     def on_option_change(self):
         self.s['nickname'] = self.nick_var.get().strip()
         self.s['theme'] = self.theme_var.get()
+        self.s['show_price'] = self.price_var.get()
         self.s['detail'] = self.detail_var.get()
         self.s['auto_copy'] = self.copy_var.get()
         winutil.save_settings(self.s)
         if self.report:
             self.report['nickname'] = self.s['nickname']
-            self.refresh_view()
+        self.refresh_view()
 
     def choose_dir(self):
         d = filedialog.askdirectory(initialdir=self.s['save_dir'] if os.path.isdir(self.s['save_dir']) else None,
@@ -380,8 +389,8 @@ class App:
             return
         self.scanning = True
         self.mode = 'local'
-        self.set_status('正在扫描硬件…')
-        self._show_message('正在扫描硬件信息,请稍候…')
+        self.set_status('正在扫描硬件并评估市场价值…')
+        self._show_message('正在扫描硬件信息并计算市场估值,请稍候…')
 
         def work():
             try:
@@ -401,10 +410,14 @@ class App:
         self.scanning = False
         if kind == 'ok':
             self.report = data
-            self.set_status(f'扫描完成 · {data["scan_time"]}')
+            val = data.get('valuation', {})
+            u_p, n_p = val.get('total_used', 0), val.get('total_new', 0)
+            p_str = f'  ·  二手残值 ≈ ¥{u_p:,} / 全新参考 ≈ ¥{n_p:,}' if u_p else ''
+            self.set_status(f'扫描完成 · {data["scan_time"]}{p_str}')
             self.refresh_view()
             m = data.get('header', {}).get('model', '')
-            self.toast.show('硬件扫描完成', f'已识别电脑: {m}' if m else '已成功识别整机配置并渲染配置长图', duration=2600)
+            msg = (f'已识别: {m}' if m else '整机扫描完成') + p_str
+            self.toast.show('硬件扫描与估值完成', msg, duration=3500)
         else:
             self._show_message('扫描失败:' + data)
             self.set_status('扫描失败')
@@ -418,13 +431,28 @@ class App:
         self.canvas.create_text(w // 2, self.px(160), text=text, fill='#556', font=(FONT, 14))
 
     def refresh_view(self):
+        th = self.theme_var.get()
+        det = self.detail_var.get()
+        sp = self.price_var.get()
         if self.mode == 'compare' and self.friend and self.report:
-            self.cur_img = renderer.render_compare(self.report, self.friend, self.theme_var.get(), self.detail_var.get())
+            self.cur_img = renderer.render_compare(self.report, self.friend, th, det, sp)
+        elif self.mode == 'cpu_ladder':
+            self.cur_img = renderer.render_ladder('cpu', self.report, self.friend, th, sp)
+        elif self.mode == 'gpu_ladder':
+            self.cur_img = renderer.render_ladder('gpu', self.report, self.friend, th, sp)
         elif self.report:
-            self.cur_img = renderer.render_report(self.report, self.theme_var.get(), self.detail_var.get())
+            self.cur_img = renderer.render_report(self.report, th, det, sp)
         else:
             return
         self._draw()
+
+    def show_ladder(self, kind='cpu'):
+        self.mode = 'cpu_ladder' if kind == 'cpu' else 'gpu_ladder'
+        self.refresh_view()
+        self.canvas.yview_moveto(0)
+        name = 'CPU 性能天梯榜' if kind == 'cpu' else '显卡 (GPU) 性能天梯榜'
+        self.set_status(f'当前视图: {name} (已自动标出本机硬件排位) · 按 F2 保存 / F3 复制')
+        self.toast.show(f'已切换至{name}', '高亮框即为本机当前硬件所在排位，可按 F2 保存或 F3 复制长图', duration=2800)
 
     def _on_resize(self, e):
         if self._resize_job:
@@ -461,7 +489,9 @@ class App:
             self.toast.show('还没有可保存的内容', '请先等待硬件扫描完成', is_error=True)
             return self.set_status('还没有可保存的内容,请先扫描')
         os.makedirs(self.s['save_dir'], exist_ok=True)
-        path = os.path.join(self.s['save_dir'], self._name('硬件对比' if self.mode == 'compare' else '硬件配置', 'png'))
+        prefix_map = {'compare': '硬件对比', 'cpu_ladder': 'CPU天梯榜', 'gpu_ladder': '显卡天梯榜'}
+        prefix = prefix_map.get(self.mode, '硬件配置')
+        path = os.path.join(self.s['save_dir'], self._name(prefix, 'png'))
         self.cur_img.save(path, 'PNG')
         copy_ok = False
         if self.copy_var.get():
@@ -471,7 +501,7 @@ class App:
             copy_msg = ''
         self.set_status(f'已保存:{path}{copy_msg}', path)
         msg = '长图已保存，并已自动复制到剪贴板 (可直接在微信/QQ等 Ctrl+V 发送)' if copy_ok else '长图已成功保存至本地文件夹'
-        self.toast.show('配置长图保存成功', msg, path=path)
+        self.toast.show('长图保存成功', msg, path=path)
 
     def _try_copy(self, img):
         try:
@@ -559,6 +589,7 @@ class App:
         self.friend = data
         self.mode = 'compare'
         self.refresh_view()
+        self.canvas.yview_moveto(0)
         self.set_status('对比图已生成,按 F2 保存 / F3 复制;点「返回本机配置」回到单机视图')
         fnick = self.friend.get('nickname') or '好友'
         self.toast.show('好友配置导入成功', f'已生成与「{fnick}」的双机对比图，按 F2 保存 / F3 复制')
@@ -566,8 +597,9 @@ class App:
     def back_local(self):
         self.mode = 'local'
         self.refresh_view()
+        self.canvas.yview_moveto(0)
         self.set_status('已返回本机配置')
-        self.toast.show('已返回本机配置', '当前展示本机硬件配置预览', duration=2000)
+        self.toast.show('已返回本机配置', '当前展示本机硬件配置与估值预览', duration=2000)
 
     def run(self):
         self.root.mainloop()

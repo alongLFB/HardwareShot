@@ -87,7 +87,8 @@ def default_nickname():
 
 def load_settings():
     def_nick = default_nickname()
-    s = {'save_dir': default_save_dir(), 'nickname': def_nick, 'theme': '科技蓝', 'detail': True, 'auto_copy': True}
+    s = {'save_dir': default_save_dir(), 'nickname': def_nick, 'theme': '科技蓝',
+         'detail': True, 'show_price': True, 'auto_copy': True}
     try:
         with open(settings_path(), encoding='utf-8') as f:
             data = json.load(f)
