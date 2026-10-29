@@ -350,7 +350,9 @@ def render_report(rep, theme='科技蓝', detail=True, show_price=True):
     bg_idx = dl.rrect(PAD, top, W - PAD, top + 10, 12, th['card'], outline=border)
     dl.text(PAD + 22, top + 18, '硬件明细 & 单项估值' if show_price else '详细信息', 18, th['text'], True)
     if show_price:
-        dl.text(W - PAD - 22, top + 22, '价格口径: 闲鱼二手均价 / 全新参考价', 12, th['sub'], False, 'ra')
+        srcs = val.get('sources') or []
+        src_txt = f'来源: {" / ".join(srcs)}  ·  ' if srcs else ''
+        dl.text(W - PAD - 22, top + 22, f'{src_txt}口径: 闲鱼二手均价 / 全新参考价', 12, th['sub'], False, 'ra')
     y = top + 58
     x0 = PAD + 22
     vx = x0 + 98

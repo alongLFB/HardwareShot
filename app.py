@@ -12,6 +12,7 @@ from tkinter import filedialog, messagebox, simpledialog, ttk
 from PIL import Image, ImageGrab, ImageTk
 
 import collector
+import market
 import renderer
 import winutil
 
@@ -260,14 +261,16 @@ class App:
         btn('保存当前长图   F2', self.save_image, True)
         btn('复制长图到剪贴板   F3', self.copy_image)
         btn('区域截图   F4', self.region_shot)
-        tk.Frame(side, bg='#2C74F0', height=1).pack(fill='x', padx=px(16), pady=px(6))
+        tk.Frame(side, bg='#2C74F0', height=1).pack(fill='x', padx=px(16), pady=px(5))
+        btn('联网精准估值 (AI/报价库)', self.start_online_price)
+        btn('手动改价 / AI接口设置', self.open_price_editor)
         btn('CPU 性能天梯榜', lambda: self.show_ladder('cpu'))
         btn('显卡 (GPU) 性能天梯榜', lambda: self.show_ladder('gpu'))
-        tk.Frame(side, bg='#2C74F0', height=1).pack(fill='x', padx=px(16), pady=px(6))
+        tk.Frame(side, bg='#2C74F0', height=1).pack(fill='x', padx=px(16), pady=px(5))
         btn('导出配置文件 (.json)', self.export_json)
         btn('导入好友配置 → 对比', self.import_friend)
         btn('返回本机配置', self.back_local)
-        tk.Frame(side, bg='#2C74F0', height=1).pack(fill='x', padx=px(16), pady=px(6))
+        tk.Frame(side, bg='#2C74F0', height=1).pack(fill='x', padx=px(16), pady=px(5))
 
         box = tk.Frame(side, bg=SIDE_BG)
         box.pack(fill='x', padx=px(16))
@@ -600,6 +603,242 @@ class App:
         self.canvas.yview_moveto(0)
         self.set_status('已返回本机配置')
         self.toast.show('已返回本机配置', '当前展示本机硬件配置与估值预览', duration=2000)
+
+    # ------------------------------------------------------------ 联网精准估值 & 手动改价弹窗
+    def start_online_price(self, force_channel=None):
+        if not self.report:
+            self.toast.show('请先扫描硬件', '等待本机硬件扫描完成后再进行联网估值', is_error=True)
+            return
+        if getattr(self, '_pricing', False):
+            return
+        self._pricing = True
+        has_key = bool((self.s.get('ai_api_key') or '').strip())
+        use_ai = (force_channel == 'ai') or (force_channel is None and has_key)
+        ch_desc = f'AI 大模型 ({self.s.get("ai_model", "qwen-plus")})' if use_ai else '公开硬件报价库 (免Key通道)'
+        self.set_status(f'正在通过「{ch_desc}」联网校准价格…')
+        self.toast.show('正在联网精准估值…', f'当前通道: {ch_desc}，请稍候 2~6 秒', duration=6000)
+
+        pq = queue.Queue()
+
+        def work():
+            try:
+                cb = lambda msg: pq.put(('prog', msg))
+                if use_ai:
+                    cnt, src = market.lookup_via_ai(self.report, self.s, cb)
+                else:
+                    cnt, src = market.lookup_via_web(self.report, cb)
+                pq.put(('done', (cnt, src)))
+            except Exception as ex:
+                pq.put(('err', str(ex)))
+
+        threading.Thread(target=work, daemon=True).start()
+
+        def poll_p():
+            try:
+                while True:
+                    k, v = pq.get_nowait()
+                    if k == 'prog':
+                        self.set_status(v)
+                    elif k == 'done':
+                        self._pricing = False
+                        cnt, src = v
+                        self.refresh_view()
+                        val = self.report.get('valuation', {})
+                        u_p, n_p = val.get('total_used', 0), val.get('total_new', 0)
+                        self.set_status(f'联网估值完成 ({src}) · 二手残值 ≈ ¥{u_p:,} / 全新参考 ≈ ¥{n_p:,}')
+                        self.toast.show('联网精准估值完成',
+                                        f'已通过「{src}」校准 {cnt} 项硬件 · 二手总计 ≈ ¥{u_p:,} | 全新总计 ≈ ¥{n_p:,}',
+                                        duration=4200)
+                        return
+                    elif k == 'err':
+                        self._pricing = False
+                        self.set_status('联网估值失败: ' + v)
+                        self.toast.show('联网估值失败', v, is_error=True, duration=4500)
+                        return
+            except queue.Empty:
+                pass
+            self.root.after(100, poll_p)
+
+        self.root.after(100, poll_p)
+
+    def open_price_editor(self):
+        if not self.report:
+            self.toast.show('请先等待硬件扫描完成', '扫描完成后即可手动微调各项硬件价格或配置 AI 接口', is_error=True)
+            return
+        market.enrich(self.report)
+        px = self.px
+        f = lambda sz, b=False: (FONT, sz, 'bold') if b else (FONT, sz)
+
+        win = tk.Toplevel(self.root)
+        win.title('手动调整硬件估价 & 联网估值设置')
+        win.configure(bg='#F1F5F9')
+        win.geometry(f'{px(760)}x{px(640)}')
+        win.transient(self.root)
+        win.grab_set()
+
+        # --- 1. 顶部 AI 大模型联网询价配置卡片
+        ai_card = tk.Frame(win, bg='white', padx=px(16), pady=px(12), highlightthickness=1, highlightbackground='#CBD5E1')
+        ai_card.pack(fill='x', padx=px(16), pady=(px(14), px(8)))
+
+        hdr_row = tk.Frame(ai_card, bg='white')
+        hdr_row.pack(fill='x', pady=(0, px(8)))
+        tk.Label(hdr_row, text='🌐 联网精准估值通道设置', bg='white', fg='#0F172A', font=f(11, True)).pack(side='left')
+        tk.Label(hdr_row, text='(不填 Key 默认走免Key公开报价网；填 Key 可用 AI 大模型识别特种硬件溢价)',
+                 bg='white', fg='#64748B', font=f(9)).pack(side='left', padx=px(8))
+
+        r1 = tk.Frame(ai_card, bg='white')
+        r1.pack(fill='x', pady=px(3))
+        tk.Label(r1, text='AI 服务商:', bg='white', fg='#334155', font=f(9), width=10, anchor='w').pack(side='left')
+        prov_var = tk.StringVar(value=self.s.get('ai_provider', '通义千问 (百炼·支持联网)'))
+        cb_prov = ttk.Combobox(r1, textvariable=prov_var, values=list(market.AI_PROVIDERS.keys()), state='readonly', font=f(9), width=24)
+        cb_prov.pack(side='left', padx=(0, px(12)))
+
+        tk.Label(r1, text='模型名称:', bg='white', fg='#334155', font=f(9)).pack(side='left')
+        model_var = tk.StringVar(value=self.s.get('ai_model', 'qwen-plus'))
+        tk.Entry(r1, textvariable=model_var, font=f(9), width=20, relief='solid', bd=1).pack(side='left', padx=px(6))
+
+        r2 = tk.Frame(ai_card, bg='white')
+        r2.pack(fill='x', pady=px(3))
+        tk.Label(r2, text='接口地址:', bg='white', fg='#334155', font=f(9), width=10, anchor='w').pack(side='left')
+        base_var = tk.StringVar(value=self.s.get('ai_api_base', 'https://dashscope.aliyuncs.com/compatible-mode/v1'))
+        tk.Entry(r2, textvariable=base_var, font=f(9), relief='solid', bd=1).pack(side='left', fill='x', expand=True, padx=(0, px(6)))
+
+        r3 = tk.Frame(ai_card, bg='white')
+        r3.pack(fill='x', pady=px(3))
+        tk.Label(r3, text='API Key:', bg='white', fg='#334155', font=f(9), width=10, anchor='w').pack(side='left')
+        key_var = tk.StringVar(value=self.s.get('ai_api_key', ''))
+        tk.Entry(r3, textvariable=key_var, font=f(9), show='*', relief='solid', bd=1).pack(side='left', fill='x', expand=True, padx=(0, px(8)))
+
+        def on_prov_select(ev=None):
+            p_info = market.AI_PROVIDERS.get(prov_var.get())
+            if p_info and p_info[0]:
+                base_var.set(p_info[0])
+                model_var.set(p_info[1])
+
+        cb_prov.bind('<<ComboboxSelected>>', on_prov_select)
+
+        def save_ai_cfg():
+            self.s['ai_provider'] = prov_var.get()
+            self.s['ai_api_base'] = base_var.get().strip()
+            self.s['ai_api_key'] = key_var.get().strip()
+            self.s['ai_model'] = model_var.get().strip()
+            winutil.save_settings(self.s)
+
+        def run_ai_now():
+            save_ai_cfg()
+            if not self.s.get('ai_api_key'):
+                return messagebox.showwarning('提示', '请先填入有效的 API Key（如阿里云百炼、DeepSeek、Kimi 等），或点击右侧「免Key公开报价校准」。', parent=win)
+            win.destroy()
+            self.start_online_price(force_channel='ai')
+
+        def run_web_now():
+            save_ai_cfg()
+            win.destroy()
+            self.start_online_price(force_channel='web')
+
+        FlatButton(r3, '🤖 用 AI 联网重估', run_ai_now, bg='#0A56D8', hover='#2C74F0', font=f(9, True), padx=px(10), pady=px(3)).pack(side='left', padx=px(3))
+        FlatButton(r3, '🌐 免Key公开报价校准', run_web_now, bg='#0D9488', hover='#14B8A6', font=f(9, True), padx=px(10), pady=px(3)).pack(side='left')
+
+        # --- 2. 中部: 单项硬件价格手动微调列表
+        list_card = tk.Frame(win, bg='white', padx=px(16), pady=px(12), highlightthickness=1, highlightbackground='#CBD5E1')
+        list_card.pack(fill='both', expand=True, padx=px(16), pady=px(6))
+
+        tk.Label(list_card, text='✏️ 单项硬件价格微调 (直接修改数字并保存，即可永久记住并更新长图)',
+                 bg='white', fg='#0F172A', font=f(11, True)).pack(anchor='w', pady=(0, px(8)))
+
+        th_row = tk.Frame(list_card, bg='#E2E8F0', pady=px(5))
+        th_row.pack(fill='x')
+        tk.Label(th_row, text='类别', bg='#E2E8F0', fg='#334155', font=f(9, True), width=10, anchor='w', padx=px(8)).pack(side='left')
+        tk.Label(th_row, text='硬件型号名称', bg='#E2E8F0', fg='#334155', font=f(9, True), anchor='w').pack(side='left', fill='x', expand=True)
+        tk.Label(th_row, text='二手残值 (¥)', bg='#E2E8F0', fg='#334155', font=f(9, True), width=12).pack(side='left')
+        tk.Label(th_row, text='全新参考 (¥)', bg='#E2E8F0', fg='#334155', font=f(9, True), width=12).pack(side='left')
+        tk.Label(th_row, text='当前来源', bg='#E2E8F0', fg='#334155', font=f(9, True), width=12).pack(side='left')
+
+        c_frame = tk.Frame(list_card, bg='white')
+        c_frame.pack(fill='both', expand=True)
+        cv = tk.Canvas(c_frame, bg='white', highlightthickness=0)
+        vsb = ttk.Scrollbar(c_frame, orient='vertical', command=cv.yview)
+        vsb.pack(side='right', fill='y')
+        cv.pack(side='left', fill='both', expand=True)
+        cv.configure(yscrollcommand=vsb.set)
+        inner = tk.Frame(cv, bg='white')
+        inner_id = cv.create_window((0, 0), window=inner, anchor='nw')
+        inner.bind('<Configure>', lambda e: cv.configure(scrollregion=cv.bbox('all')))
+        cv.bind('<Configure>', lambda e: cv.itemconfig(inner_id, width=e.width))
+
+        entries = []
+        for it in self.report.get('items', []):
+            k = it.get('key')
+            for r in it.get('rows', []):
+                ev = r.get('_eval') or {}
+                if k == 'sound' or ev.get('note') == 'CPU内置核显':
+                    continue
+                entries.append((k, it.get('label', k), r.get('t', ''), ev.get('used', 0), ev.get('new', 0), ev.get('source', '内置估算')))
+
+        val = self.report.get('valuation', {})
+        ex_lbl = val.get('extra_label', '机箱/电源/散热器基础估算')
+        pcache = winutil.load_price_cache()
+        ex_ck = market.cache_key('extra', ex_lbl)
+        ex_src = pcache.get(ex_ck, {}).get('source', '内置估算')
+        entries.append(('extra', '机电散/附加', ex_lbl, val.get('extra_used', 0), val.get('extra_new', 0), ex_src))
+
+        row_vars = []
+        for idx_r, (k, lab, title_str, u_val, n_val, src_str) in enumerate(entries):
+            bg_c = '#F8FAFC' if idx_r % 2 == 1 else 'white'
+            rf = tk.Frame(inner, bg=bg_c, pady=px(5))
+            rf.pack(fill='x')
+            tk.Label(rf, text=lab, bg=bg_c, fg='#0A56D8', font=f(9, True), width=10, anchor='w', padx=px(8)).pack(side='left')
+            tk.Label(rf, text=title_str, bg=bg_c, fg='#1E293B', font=f(9), anchor='w').pack(side='left', fill='x', expand=True)
+            uv = tk.StringVar(value=str(u_val))
+            nv = tk.StringVar(value=str(n_val))
+            tk.Entry(rf, textvariable=uv, font=f(9), width=10, justify='center', relief='solid', bd=1).pack(side='left', padx=px(6))
+            tk.Entry(rf, textvariable=nv, font=f(9), width=10, justify='center', relief='solid', bd=1).pack(side='left', padx=px(6))
+            tk.Label(rf, text=src_str, bg=bg_c, fg='#16A34A' if src_str != '内置估算' else '#64748B', font=f(8), width=12).pack(side='left')
+            row_vars.append((k, title_str, u_val, n_val, uv, nv))
+
+        # --- 3. 底部操作按钮
+        bot = tk.Frame(win, bg='#F1F5F9', padx=px(16), pady=px(10))
+        bot.pack(fill='x')
+
+        def save_all():
+            save_ai_cfg()
+            pc = winutil.load_price_cache()
+            now_s = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+            changed = 0
+            for k, t_s, old_u, old_n, uv, nv in row_vars:
+                try:
+                    new_u = max(0, int(float(uv.get().strip() or 0)))
+                    new_n = max(0, int(float(nv.get().strip() or 0)))
+                except Exception:
+                    continue
+                ck = market.cache_key(k, t_s)
+                if new_u != old_u or new_n != old_n:
+                    pc[ck] = {'used': new_u, 'new': new_n, 'source': '手动校准', 'ts': now_s}
+                    changed += 1
+            winutil.save_price_cache(pc)
+            market.enrich(self.report)
+            self.refresh_view()
+            v_now = self.report.get('valuation', {})
+            u_p, n_p = v_now.get('total_used', 0), v_now.get('total_new', 0)
+            self.set_status(f'已更新估值 · 二手残值 ≈ ¥{u_p:,} / 全新参考 ≈ ¥{n_p:,}')
+            win.destroy()
+            self.toast.show('价格设置已保存', f'当前整机二手估值 ≈ ¥{u_p:,} | 全新参考 ≈ ¥{n_p:,}', duration=3000)
+
+        def reset_cache():
+            if not messagebox.askyesno('恢复默认估值', '确定要清空所有联网校准和手动修改的价格，恢复为内置离线基准估值吗？', parent=win):
+                return
+            winutil.save_price_cache({})
+            market.enrich(self.report)
+            self.refresh_view()
+            v_now = self.report.get('valuation', {})
+            u_p, n_p = v_now.get('total_used', 0), v_now.get('total_new', 0)
+            self.set_status(f'已恢复默认离线估值 · 二手残值 ≈ ¥{u_p:,} / 全新参考 ≈ ¥{n_p:,}')
+            win.destroy()
+            self.toast.show('已恢复默认离线估值', f'当前整机二手估值 ≈ ¥{u_p:,} | 全新参考 ≈ ¥{n_p:,}', duration=2800)
+
+        FlatButton(bot, '✔ 保存修改并刷新长图', save_all, bg=GREEN, hover=GREEN_HOVER, font=f(10, True), padx=px(18), pady=px(6)).pack(side='right')
+        FlatButton(bot, '取消', win.destroy, bg='#64748B', hover='#475569', font=f(10), padx=px(14), pady=px(6)).pack(side='right', padx=px(10))
+        FlatButton(bot, '↺ 恢复默认离线估值', reset_cache, bg='#EF4444', hover='#DC2626', font=f(9), padx=px(12), pady=px(6)).pack(side='left')
 
     def run(self):
         self.root.mainloop()

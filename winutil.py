@@ -70,6 +70,29 @@ def settings_path():
     return os.path.join(d, 'settings.json')
 
 
+def price_cache_path():
+    d = os.path.join(os.environ.get('APPDATA', os.path.expanduser('~')), 'HardwareShot')
+    os.makedirs(d, exist_ok=True)
+    return os.path.join(d, 'price_cache.json')
+
+
+def load_price_cache():
+    try:
+        with open(price_cache_path(), encoding='utf-8') as f:
+            data = json.load(f)
+            return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def save_price_cache(cache):
+    try:
+        with open(price_cache_path(), 'w', encoding='utf-8') as f:
+            json.dump(cache, f, ensure_ascii=False, indent=1)
+    except Exception:
+        pass
+
+
 def default_save_dir():
     pics = os.path.join(os.path.expanduser('~'), 'Pictures')
     base = pics if os.path.isdir(pics) else os.path.expanduser('~')
@@ -87,8 +110,18 @@ def default_nickname():
 
 def load_settings():
     def_nick = default_nickname()
-    s = {'save_dir': default_save_dir(), 'nickname': def_nick, 'theme': '科技蓝',
-         'detail': True, 'show_price': True, 'auto_copy': True}
+    s = {
+        'save_dir': default_save_dir(),
+        'nickname': def_nick,
+        'theme': '科技蓝',
+        'detail': True,
+        'show_price': True,
+        'auto_copy': True,
+        'ai_provider': '通义千问 (百炼·支持联网)',
+        'ai_api_base': 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+        'ai_api_key': '',
+        'ai_model': 'qwen-plus',
+    }
     try:
         with open(settings_path(), encoding='utf-8') as f:
             data = json.load(f)
