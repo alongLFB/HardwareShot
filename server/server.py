@@ -179,40 +179,51 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _send_file(self, path, content_type, download_name=None):
+    def _send_file(self, path, content_type, download_name=None, head_only=False):
         if not os.path.isfile(path):
             self.send_error(404, 'Not Found')
             return
-        with open(path, 'rb') as f:
-            data = f.read()
+        size = os.path.getsize(path)
         self.send_response(200)
         self.send_header('Content-Type', content_type)
-        self.send_header('Content-Length', str(len(data)))
+        self.send_header('Content-Length', str(size))
         if download_name:
             enc_name = urllib.parse.quote(download_name)
-            self.send_header('Content-Disposition', f"attachment; filename*=UTF-8''{enc_name}")
+            self.send_header('Content-Disposition', f"attachment; filename=\"HardwareShot.zip\"; filename*=UTF-8''{enc_name}")
         self.end_headers()
-        self.wfile.write(data)
+        if not head_only:
+            with open(path, 'rb') as f:
+                while True:
+                    chunk = f.read(65536)
+                    if not chunk:
+                        break
+                    self.wfile.write(chunk)
 
     def do_OPTIONS(self):
         self._send_json({'ok': True})
 
+    def do_HEAD(self):
+        self._handle_get(head_only=True)
+
     def do_GET(self):
+        self._handle_get(head_only=False)
+
+    def _handle_get(self, head_only=False):
         parsed = urllib.parse.urlparse(self.path)
-        p = parsed.path
+        p = urllib.parse.unquote(parsed.path)
         if p == '/api/configs':
             return self._send_json({'ok': True, 'items': list_configs()})
         if p.startswith('/api/config/'):
             cid = p.split('/api/config/', 1)[1].strip('/')
             for item in list_configs():
                 if item['id'] == cid:
-                    return self._send_json({'ok': True, 'item': item})
+                    return self._send_json({'ok': True, 'item': item, 'report': item.get('report')})
             return self._send_json({'ok': False, 'error': '未找到该配置记录'}, 404)
-        if p in ('/download/硬件配置助手.zip', '/download/HardwareShot.zip'):
+        if p in ('/download/硬件配置助手.zip', '/download/HardwareShot.zip', '/硬件配置助手.zip'):
             zp = os.path.join(HERE, '硬件配置助手.zip')
-            return self._send_file(zp, 'application/zip', '硬件配置助手.zip')
+            return self._send_file(zp, 'application/zip', '硬件配置助手.zip', head_only=head_only)
         if p in ('/', '/index.html'):
-            return self._send_file(os.path.join(HERE, 'index.html'), 'text/html; charset=utf-8')
+            return self._send_file(os.path.join(HERE, 'index.html'), 'text/html; charset=utf-8', head_only=head_only)
         self.send_error(404, 'Not Found')
 
     def do_POST(self):
