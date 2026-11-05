@@ -121,6 +121,7 @@ def load_settings():
         'ai_api_base': 'https://dashscope.aliyuncs.com/compatible-mode/v1',
         'ai_api_key': '',
         'ai_model': 'qwen-plus',
+        'pk_server_url': 'https://pc.alonglfb.com',
     }
     try:
         with open(settings_path(), encoding='utf-8') as f:

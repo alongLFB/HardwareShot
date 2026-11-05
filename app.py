@@ -7,6 +7,8 @@ import queue
 import re
 import threading
 import tkinter as tk
+import urllib.request
+import webbrowser
 from tkinter import filedialog, messagebox, simpledialog, ttk
 
 from PIL import Image, ImageGrab, ImageTk
@@ -126,7 +128,7 @@ class ToastNotification:
         self.frame = None
         self._timer = None
 
-    def show(self, title, message='', path=None, is_error=False, duration=3500):
+    def show(self, title, message='', path=None, is_error=False, duration=3500, url=None):
         if self._timer:
             self.parent.after_cancel(self._timer)
             self._timer = None
@@ -158,6 +160,14 @@ class ToastNotification:
 
         btns = tk.Frame(row1, bg='#181F2C')
         btns.pack(side='right', padx=(px(16), 0))
+
+        if url:
+            b_url = tk.Label(btns, text='🌐 打开 PK 网页', bg='#16C47F', fg='white', font=f(9, True),
+                             cursor='hand2', padx=px(8), pady=px(2))
+            b_url.pack(side='left', padx=(0, px(6)))
+            b_url.bind('<Enter>', lambda e, w=b_url: w.config(bg='#2FD893'))
+            b_url.bind('<Leave>', lambda e, w=b_url: w.config(bg='#16C47F'))
+            b_url.bind('<Button-1>', lambda e, u=url: webbrowser.open(u))
 
         if path and os.path.exists(path):
             def open_item():
@@ -267,6 +277,8 @@ class App:
         btn('CPU 性能天梯榜', lambda: self.show_ladder('cpu'))
         btn('显卡 (GPU) 性能天梯榜', lambda: self.show_ladder('gpu'))
         tk.Frame(side, bg='#2C74F0', height=1).pack(fill='x', padx=px(16), pady=px(5))
+        btn('☁️ 上传配置去云端 PK', self.upload_to_cloud, True)
+        btn('🌐 云端天梯榜选人对比', self.pick_cloud_friend)
         btn('导出配置文件 (.json)', self.export_json)
         btn('导入好友配置 → 对比', self.import_friend)
         btn('返回本机配置', self.back_local)
@@ -557,7 +569,164 @@ class App:
         msg = '截图已保存，并已复制到系统剪贴板 (可直接 Ctrl+V 发送)' if copy_ok else '截图已成功保存至本地文件夹'
         self.toast.show('区域截图保存成功', msg, path=path)
 
-    # ------------------------------------------------------------ 导出 / 对比
+    # ------------------------------------------------------------ 云端 PK 上传 / 选人对比 / 导出
+    def upload_to_cloud(self):
+        if not self.report:
+            self.toast.show('尚未检测到硬件信息', '请先等待本机硬件扫描完成', is_error=True)
+            return self.set_status('请先扫描硬件')
+        if getattr(self, '_uploading', False):
+            return
+        self.on_option_change()
+        self._uploading = True
+        srv = (self.s.get('pk_server_url') or 'https://pc.alonglfb.com').rstrip('/')
+        self.set_status(f'正在上传本机配置到云端 PK 竞技场 ({srv})…')
+        self.toast.show('正在上传至云端 PK 台…', f'目标服务器: {srv}', duration=4000)
+
+        uq = queue.Queue()
+        payload = json.dumps(self.report, ensure_ascii=False).encode('utf-8')
+
+        def work():
+            try:
+                req = urllib.request.Request(
+                    f'{srv}/api/upload',
+                    data=payload,
+                    headers={
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'User-Agent': 'HardwareShot-Client/2.0',
+                    },
+                    method='POST',
+                )
+                with urllib.request.urlopen(req, timeout=15) as r:
+                    resp = json.loads(r.read().decode('utf-8', errors='ignore'))
+                uq.put(('ok', resp))
+            except Exception as ex:
+                uq.put(('err', str(ex)))
+
+        threading.Thread(target=work, daemon=True).start()
+
+        def poll():
+            try:
+                while True:
+                    kind, val = uq.get_nowait()
+                    if kind == 'ok' and val.get('ok'):
+                        self._uploading = False
+                        url = val.get('url') or f'{srv}/?id={val.get("id", "")}'
+                        try:
+                            self.root.clipboard_clear()
+                            self.root.clipboard_append(url)
+                        except Exception:
+                            pass
+                        self.set_status(f'已上传至云端 PK 榜! 专属链接已复制: {url}')
+                        self.toast.show(
+                            '上传成功! 专属 PK 链接已复制到剪贴板',
+                            f'{url}  (可直接粘贴发给好友在线 PK，或点右侧按钮打开网页)',
+                            duration=8000,
+                            url=url,
+                        )
+                        return
+                    else:
+                        self._uploading = False
+                        err_s = val.get('error') if isinstance(val, dict) else str(val)
+                        self.set_status(f'上传云端失败: {err_s}')
+                        self.toast.show('上传云端失败', f'错误信息: {err_s}', is_error=True, duration=5000)
+                        return
+            except queue.Empty:
+                pass
+            if getattr(self, '_uploading', False):
+                self.root.after(100, poll)
+
+        self.root.after(100, poll)
+
+    def pick_cloud_friend(self):
+        if not self.report:
+            self.toast.show('尚未检测到本机配置', '请先等待本机硬件扫描完成', is_error=True)
+            return self.set_status('请先扫描本机硬件')
+        srv = (self.s.get('pk_server_url') or 'https://pc.alonglfb.com').rstrip('/')
+        self.set_status(f'正在从云端 ({srv}) 获取天梯榜玩家配置…')
+
+        try:
+            req = urllib.request.Request(f'{srv}/api/configs', headers={'User-Agent': 'HardwareShot-Client/2.0'})
+            with urllib.request.urlopen(req, timeout=10) as r:
+                resp = json.loads(r.read().decode('utf-8', errors='ignore'))
+            items = resp.get('items', [])
+        except Exception as ex:
+            self.toast.show('连接云端失败', f'无法获取云端列表: {ex}', is_error=True)
+            return self.set_status(f'连接云端失败: {ex}')
+
+        px = self.px
+        f = lambda sz, b=False: (FONT, sz, 'bold') if b else (FONT, sz)
+        win = tk.Toplevel(self.root)
+        win.title(f'云端配置天梯榜 — 选择对手进行双机 PK ({srv})')
+        win.geometry(f'{px(880)}x{px(540)}')
+        win.configure(bg='#F1F5F9')
+        win.transient(self.root)
+        win.grab_set()
+
+        top_bar = tk.Frame(win, bg='#0A56D8', padx=px(16), pady=px(12))
+        top_bar.pack(fill='x')
+        tk.Label(top_bar, text='🌐 云端配置风云榜 · 选择任意玩家与本机 PK', bg='#0A56D8', fg='white', font=f(12, True)).pack(side='left')
+        FlatButton(top_bar, '↗ 在浏览器打开 PK 网站', lambda: webbrowser.open(srv),
+                   bg=GREEN, hover=GREEN_HOVER, font=f(9, True), padx=px(12), pady=px(4)).pack(side='right')
+
+        list_card = tk.Frame(win, bg='white', padx=px(12), pady=px(10), highlightthickness=1, highlightbackground='#CBD5E1')
+        list_card.pack(fill='both', expand=True, padx=px(16), pady=px(12))
+
+        c_frame = tk.Frame(list_card, bg='white')
+        c_frame.pack(fill='both', expand=True)
+        cv = tk.Canvas(c_frame, bg='white', highlightthickness=0)
+        vsb = ttk.Scrollbar(c_frame, orient='vertical', command=cv.yview)
+        vsb.pack(side='right', fill='y')
+        cv.pack(side='left', fill='both', expand=True)
+        cv.configure(yscrollcommand=vsb.set)
+        inner = tk.Frame(cv, bg='white')
+        inner_id = cv.create_window((0, 0), window=inner, anchor='nw')
+        inner.bind('<Configure>', lambda e: cv.configure(scrollregion=cv.bbox('all')))
+        cv.bind('<Configure>', lambda e: cv.itemconfig(inner_id, width=e.width))
+
+        def load_opponent(cid, cnick):
+            try:
+                r2 = urllib.request.Request(f'{srv}/api/config/{cid}', headers={'User-Agent': 'HardwareShot-Client/2.0'})
+                with urllib.request.urlopen(r2, timeout=10) as res:
+                    d2 = json.loads(res.read().decode('utf-8', errors='ignore'))
+                rep = d2.get('report')
+                assert rep and isinstance(rep.get('items'), list)
+            except Exception as ex:
+                return messagebox.showerror(APP_NAME, f'拉取配置失败: {ex}', parent=win)
+            win.destroy()
+            self.friend = rep
+            self.mode = 'compare'
+            self.refresh_view()
+            self.canvas.yview_moveto(0)
+            self.set_status(f'已加载云端玩家「{cnick}」并生成双机 PK 长图，按 F2 保存 / F3 复制')
+            self.toast.show('云端对手加载成功', f'已生成与「{cnick}」的双机对比图，按 F2 保存 / F3 复制', url=f'{srv}/?pk={cid}')
+
+        if not items:
+            tk.Label(inner, text='云端暂无玩家上传配置，快点击左侧「☁️ 上传配置去云端 PK」抢占榜首吧！',
+                     bg='white', fg='#64748B', font=f(10), pady=px(40)).pack(fill='x')
+        else:
+            for idx, it in enumerate(items):
+                bg_c = '#F8FAFC' if idx % 2 == 1 else 'white'
+                rf = tk.Frame(inner, bg=bg_c, pady=px(8), padx=px(8))
+                rf.pack(fill='x')
+                rk_col = '#D97706' if idx == 0 else ('#0A56D8' if idx < 3 else '#64748B')
+                tk.Label(rf, text=f'#{idx + 1}', bg=bg_c, fg=rk_col, font=f(11, True), width=4, anchor='w').pack(side='left')
+                info = tk.Frame(rf, bg=bg_c)
+                info.pack(side='left', fill='x', expand=True)
+                t_lbl = it.get('overall_title') or it.get('tier_tag') or ''
+                r_lbl = it.get('ram_desc') or it.get('ram_summary') or '-'
+                tk.Label(info, text=f'{it.get("nickname", "玩家")}   [{t_lbl}]   战力 {it.get("total_score", 0):,} 分',
+                         bg=bg_c, fg='#0F172A', font=f(10, True), anchor='w').pack(fill='x')
+                tk.Label(info, text=f'CPU: {it.get("cpu_name", "-")}   |   显卡: {it.get("gpu_name", "-")}   |   内存: {r_lbl}',
+                         bg=bg_c, fg='#475569', font=f(9), anchor='w').pack(fill='x', pady=(px(2), 0))
+                price_f = tk.Frame(rf, bg=bg_c)
+                price_f.pack(side='left', padx=px(12))
+                tk.Label(price_f, text=f'二手 ¥{it.get("total_used", 0):,}', bg=bg_c, fg='#EA580C', font=f(10, True)).pack(anchor='e')
+                tk.Label(price_f, text=f'全新 ¥{it.get("total_new", 0):,}', bg=bg_c, fg='#16A34A', font=f(8)).pack(anchor='e')
+                cid = it.get('id')
+                cnick = it.get('nickname', '玩家')
+                FlatButton(rf, '⚔️ 选TA对比', lambda c=cid, n=cnick: load_opponent(c, n),
+                           bg='#0A56D8', hover='#2C74F0', font=f(9, True), padx=px(12), pady=px(5)).pack(side='right')
+
     def export_json(self):
         if not self.report:
             self.toast.show('尚未检测到硬件信息', '请先等待硬件扫描完成', is_error=True)

@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>硬件配置云端 PK 竞技场 & 全服天梯榜 · HardwareShot</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card: #131b2e;
+      --card-hover: #19233c;
+      --border: #243252;
+      --text: #f1f5f9;
+      --sub: #94a3b8;
+      --cyan: #00f0ff;
+      --blue: #3b82f6;
+      --orange: #f97316;
+      --pink: #ff247d;
+      --green: #10b981;
+      --gold: #fde047;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: radial-gradient(circle at 50% 0%, #162447 0%, var(--bg) 55%);
+      color: var(--text);
+      font-family: "Microsoft YaHei UI", "PingFang SC", -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    .container { max-width: 1220px; margin: 0 auto; padding: 24px 18px 64px; }
+
+    /* Header */
+    .hero {
+      background: linear-gradient(135deg, rgba(10,86,216,0.35) 0%, rgba(225,0,105,0.22) 100%);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 26px 28px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 24px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    }
+    .hero-tag {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .hero h1 {
+      font-size: 28px;
+      font-weight: 800;
+      background: linear-gradient(90deg, #ffffff, #93c5fd, #00f0ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p { color: var(--sub); font-size: 14px; margin-top: 4px; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid transparent;
+      text-decoration: none;
+      transition: all 0.18s;
+      color: white;
+    }
+    .btn-primary { background: linear-gradient(135deg, #0a56d8, #0284c7); border-color: #38bdf8; }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 18px rgba(56,189,248,0.35); }
+    .btn-green { background: linear-gradient(135deg, #059669, #10b981); border-color: #34d399; }
+    .btn-green:hover { transform: translateY(-1px); box-shadow: 0 4px 18px rgba(16,185,129,0.35); }
+    .btn-ghost { background: rgba(255,255,255,0.06); border-color: var(--border); color: var(--text); }
+    .btn-ghost:hover { background: rgba(255,255,255,0.12); border-color: var(--cyan); }
+
+    /* Tabs */
+    .nav-tabs {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+    }
+    .tab-btn {
+      background: var(--card);
+      color: var(--sub);
+      border: 1px solid var(--border);
+      padding: 10px 22px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.18s;
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, #1d4ed8, #0369a1);
+      color: white;
+      border-color: var(--cyan);
+      box-shadow: 0 0 18px rgba(0,240,255,0.2);
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.25);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .card-title { font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+
+    /* Tier Pills */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      color: white;
+      white-space: nowrap;
+    }
+    .tier-T0 { background: linear-gradient(135deg, #e11d48, #ff247d); }
+    .tier-T1 { background: linear-gradient(135deg, #d97706, #f59e0b); }
+    .tier-T2 { background: linear-gradient(135deg, #059669, #10b981); }
+    .tier-T3 { background: linear-gradient(135deg, #2563eb, #3b82f6); }
+    .tier-T4 { background: #64748b; }
+
+    /* PK Selector Grid */
+    .pk-banner {
+      display: grid;
+      grid-template-columns: 1fr 84px 1fr;
+      gap: 16px;
+      align-items: stretch;
+    }
+    @media (max-width: 820px) {
+      .pk-banner { grid-template-columns: 1fr; }
+      .vs-center { padding: 8px 0; }
+    }
+    .fighter-box {
+      background: rgba(11, 15, 25, 0.65);
+      border-radius: 14px;
+      padding: 18px;
+      border: 2px solid transparent;
+      position: relative;
+    }
+    .fighter-a { border-color: rgba(0, 240, 255, 0.55); }
+    .fighter-b { border-color: rgba(249, 115, 22, 0.65); }
+    .fighter-select {
+      width: 100%;
+      background: #17223b;
+      color: white;
+      border: 1px solid var(--border);
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      outline: none;
+    }
+    .fighter-name { font-size: 20px; font-weight: 800; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .fighter-a .fighter-name { color: var(--cyan); }
+    .fighter-b .fighter-name { color: var(--orange); }
+    .fighter-sub { font-size: 13px; color: var(--sub); margin-bottom: 12px; }
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .stat-cell {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
+    .stat-label { font-size: 11px; color: var(--sub); }
+    .stat-val { font-size: 16px; font-weight: 800; margin-top: 2px; }
+    .vs-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .vs-circle {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #e11d48, #f97316);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 900;
+      box-shadow: 0 0 24px rgba(225, 29, 72, 0.5);
+    }
+
+    /* Metric Bars */
+    .metric-row {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 14px;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .metric-row:last-child { border-bottom: none; }
+    .metric-title { font-size: 14px; font-weight: 700; color: var(--text); }
+    .bars-wrap { display: flex; flex-direction: column; gap: 7px; }
+    .bar-line { display: flex; align-items: center; gap: 10px; }
+    .bar-track {
+      flex: 1;
+      height: 16px;
+      background: #0b101d;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .bar-fill { height: 100%; border-radius: 999px; transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
+    .fill-a { background: linear-gradient(90deg, #0284c7, #00f0ff); }
+    .fill-b { background: linear-gradient(90deg, #ea580c, #fb923c); }
+    .bar-val { width: 165px; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+    .win-badge {
+      background: var(--green);
+      color: white;
+      font-size: 11px;
+      padding: 1px 7px;
+      border-radius: 999px;
+      font-weight: 700;
+    }
+
+    /* Detail Comparison Table */
+    .comp-row {
+      display: grid;
+      grid-template-columns: 110px 1fr 1fr;
+      gap: 16px;
+      padding: 14px;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .comp-row.diff {
+      background: rgba(30, 58, 138, 0.18);
+      border-color: rgba(59, 130, 246, 0.35);
+    }
+    @media (max-width: 760px) {
+      .comp-row { grid-template-columns: 1fr; gap: 8px; }
+      .metric-row { grid-template-columns: 1fr; gap: 6px; }
+    }
+    .comp-cat { font-size: 15px; font-weight: 800; color: var(--cyan); display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+    .hw-item { margin-bottom: 8px; }
+    .hw-item:last-child { margin-bottom: 0; }
+    .hw-t { font-size: 15px; font-weight: 700; color: var(--text); }
+    .hw-d { font-size: 12px; color: var(--sub); margin-top: 2px; }
+    .hw-p { font-size: 12px; color: var(--gold); font-weight: 700; margin-top: 3px; }
+
+    /* Leaderboard Table */
+    .rank-list { display: flex; flex-direction: column; gap: 12px; }
+    .rank-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px;
+      display: grid;
+      grid-template-columns: 52px 1.3fr 1.6fr 1fr auto;
+      gap: 14px;
+      align-items: center;
+      transition: all 0.15s;
+    }
+    .rank-card:hover { background: var(--card-hover); border-color: #3b82f6; }
+    @media (max-width: 900px) {
+      .rank-card { grid-template-columns: 1fr; }
+    }
+    .rank-num {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 900;
+      background: rgba(255,255,255,0.06);
+      color: var(--sub);
+    }
+    .rank-1 { background: linear-gradient(135deg, #f59e0b, #fde047); color: #0f172a; }
+    .rank-2 { background: linear-gradient(135deg, #94a3b8, #e2e8f0); color: #0f172a; }
+    .rank-3 { background: linear-gradient(135deg, #b45309, #fb923c); color: #fff; }
+    .hw-brief { font-size: 13px; color: var(--sub); line-height: 1.55; }
+    .hw-brief strong { color: var(--text); }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      top: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: white;
+      border: 1px solid var(--cyan);
+      padding: 12px 22px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      z-index: 9999;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="toast"></div>
+  <input type="file" id="fileInput" accept=".json" style="display:none" />
+
+  <div class="container">
+    <!-- Hero -->
+    <div class="hero">
+      <div>
+        <div class="hero-tag">HARDWARESHOT CLOUD ARENA · SA1</div>
+        <h1>⚡ 硬件配置云端 PK 竞技场 & 全服天梯榜</h1>
+        <p>一键上传本机配置 · 双机战力与闲鱼/全新身价实时 PK · 全服硬件段位排行</p>
+      </div>
+      <div class="hero-actions">
+        <button class="btn btn-green" onclick="document.getElementById('fileInput').click()">
+          📤 上传配置文件 (.json)
+        </button>
+        <button class="btn btn-primary" onclick="copyShareLink()">
+          🔗 复制当前 PK 链接
+        </button>
+        <a class="btn btn-ghost" href="/download/硬件配置助手.zip">
+          ⬇️ 下载桌面客户端 (.zip)
+        </a>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+      <button class="tab-btn active" id="tabBtnPk" onclick="switchTab('pk')">⚔️ 在线双机 PK 竞技场</button>
+      <button class="tab-btn" id="tabBtnRank" onclick="switchTab('rank')">🏆 全服配置风云榜 (<span id="totalCount">0</span>)</button>
+    </div>
+
+    <!-- View 1: PK Arena -->
+    <div id="viewPk">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">⚔️ 选择对战双方 (支持下拉切换任意已上传玩家电脑)</div>
+          <button class="btn btn-ghost" style="padding:6px 14px;font-size:13px" onclick="swapFighters()">⇄ 互换左右位置</button>
+        </div>
+        <div class="pk-banner">
+          <!-- Fighter A -->
+          <div class="fighter-box fighter-a">
+            <select id="selA" class="fighter-select" onchange="onSelectChange()"></select>
+            <div id="boxA"></div>
+          </div>
+          <!-- VS Center -->
+          <div class="vs-center">
+            <div class="vs-circle">PK</div>
+            <div id="pkDiffText" style="font-size:12px;color:var(--sub);text-align:center"></div>
+          </div>
+          <!-- Fighter B -->
+          <div class="fighter-box fighter-b">
+            <select id="selB" class="fighter-select" onchange="onSelectChange()"></select>
+            <div id="boxB"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Key Metrics Bar Chart -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📊 关键性能跑分与市场身价对比</div>
+        </div>
+        <div id="metricsArena"></div>
+      </div>
+
+      <!-- Detailed Spec Comparison -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🔍 详细硬件规格与单项估值逐项对比</div>
+          <div id="diffSummary" style="font-size:13px;color:var(--sub)"></div>
+        </div>
+        <div id="detailsArena"></div>
+      </div>
+    </div>
+
+    <!-- View 2: Leaderboard -->
+    <div id="viewRank" style="display:none">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🏆 全服玩家硬件配置天梯排行</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px" onclick="sortRank('score')">按综合战力</button>
+            <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px" onclick="sortRank('used')">按二手残值</button>
+            <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px" onclick="sortRank('new')">按全新参考价</button>
+            <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px" onclick="sortRank('time')">按最新上传</button>
+          </div>
+        </div>
+        <div class="rank-list" id="rankList"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let ITEMS = [];
+    let idA = null;
+    let idB = null;
+    let rankSortMode = 'score';
+
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.style.display = 'block';
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => { el.style.display = 'none'; }, 3400);
+    }
+
+    function fmtNum(n) {
+      return Number(n || 0).toLocaleString('zh-CN');
+    }
+
+    function switchTab(tab) {
+      document.getElementById('viewPk').style.display = tab === 'pk' ? 'block' : 'none';
+      document.getElementById('viewRank').style.display = tab === 'rank' ? 'block' : 'none';
+      document.getElementById('tabBtnPk').classList.toggle('active', tab === 'pk');
+      document.getElementById('tabBtnRank').classList.toggle('active', tab === 'rank');
+    }
+
+    async function loadConfigs() {
+      const res = await fetch('/api/configs');
+      const data = await res.json();
+      ITEMS = data.items || [];
+      document.getElementById('totalCount').textContent = ITEMS.length;
+
+      const params = new URLSearchParams(window.location.search);
+      const pkParam = params.get('pk');
+      const idParam = params.get('id');
+
+      if (pkParam && pkParam.includes(',')) {
+        const [a, b] = pkParam.split(',');
+        idA = a; idB = b;
+      } else if (idParam || pkParam) {
+        idA = idParam || pkParam;
+        const other = ITEMS.find(x => x.id !== idA);
+        idB = other ? other.id : idA;
+      }
+
+      if (!ITEMS.some(x => x.id === idA) && ITEMS.length > 0) idA = ITEMS[0].id;
+      if (!ITEMS.some(x => x.id === idB) && ITEMS.length > 0) {
+        idB = ITEMS.length > 1 ? ITEMS[1].id : ITEMS[0].id;
+      }
+
+      renderSelectors();
+      renderPK();
+      renderRankList();
+    }
+
+    function renderSelectors() {
+      const selA = document.getElementById('selA');
+      const selB = document.getElementById('selB');
+      const opts = ITEMS.map((it, idx) =>
+        `<option value="${it.id}">#${idx + 1} ${it.nickname} · ${it.model} (战力 ${fmtNum(it.total_score)} / 二手 ¥${fmtNum(it.total_used)})</option>`
+      ).join('');
+      selA.innerHTML = opts;
+      selB.innerHTML = opts;
+      if (idA) selA.value = idA;
+      if (idB) selB.value = idB;
+    }
+
+    function onSelectChange() {
+      idA = document.getElementById('selA').value;
+      idB = document.getElementById('selB').value;
+      const url = new URL(window.location.href);
+      url.searchParams.set('pk', `${idA},${idB}`);
+      url.searchParams.delete('id');
+      window.history.replaceState({}, '', url);
+      renderPK();
+    }
+
+    function swapFighters() {
+      const tmp = idA; idA = idB; idB = tmp;
+      document.getElementById('selA').value = idA;
+      document.getElementById('selB').value = idB;
+      onSelectChange();
+    }
+
+    function renderFighterBox(item, other) {
+      if (!item) return '<div style="color:var(--sub)">暂无配置数据，请先上传</div>';
+      const winScore = other && item.total_score > other.total_score;
+      const winPrice = other && item.total_used > other.total_used;
+      return `
+        <div class="fighter-name">
+          <span>${item.nickname}</span>
+          <span class="pill tier-${item.overall_tier}">${item.overall_title}</span>
+          ${winScore ? '<span class="pill" style="background:#10b981">👑 战力领先</span>' : ''}
+        </div>
+        <div class="fighter-sub">${item.model} · 击败全国 ${item.beat_pct}% 电脑 · 扫描于 ${item.scan_time}</div>
+        <div class="stat-grid">
+          <div class="stat-cell">
+            <div class="stat-label">综合天梯跑分</div>
+            <div class="stat-val" style="color:#34d399">${fmtNum(item.total_score)} 分</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-label">二手市场残值 ${winPrice ? '🔥' : ''}</div>
+            <div class="stat-val" style="color:var(--gold)">¥ ${fmtNum(item.total_used)}</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-label">全新装机参考</div>
+            <div class="stat-val" style="color:#93c5fd">¥ ${fmtNum(item.total_new)}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderPK() {
+      const a = ITEMS.find(x => x.id === idA);
+      const b = ITEMS.find(x => x.id === idB);
+      document.getElementById('boxA').innerHTML = renderFighterBox(a, b);
+      document.getElementById('boxB').innerHTML = renderFighterBox(b, a);
+      if (!a || !b) return;
+
+      const diffUsed = Math.abs(a.total_used - b.total_used);
+      const diffScore = Math.abs(a.total_score - b.total_score);
+      document.getElementById('pkDiffText').innerHTML = `战力差 ${fmtNum(diffScore)}<br/>二手差 ¥${fmtNum(diffUsed)}`;
+
+      const ma = (a.report && a.report.metrics) || {};
+      const mb = (b.report && b.report.metrics) || {};
+      const metricDefs = [
+        ['cpu_score', 'CPU 天梯性能分', '分', a.cpu_score || ma.cpu_score || 0, b.cpu_score || mb.cpu_score || 0],
+        ['gpu_score', '显卡天梯性能分', '分', a.gpu_score || ma.gpu_score || 0, b.gpu_score || mb.gpu_score || 0],
+        ['used_price', '整机二手残值', '元', a.total_used || 0, b.total_used || 0],
+        ['new_price', '整机全新参考价', '元', a.total_new || 0, b.total_new || 0],
+        ['cpu_cores', 'CPU 核心数', '核', ma.cpu_cores || 0, mb.cpu_cores || 0],
+        ['cpu_threads', 'CPU 线程数', '线程', ma.cpu_threads || 0, mb.cpu_threads || 0],
+        ['ram_gb', '内存容量', 'GB', ma.ram_gb || 0, mb.ram_gb || 0],
+        ['ram_speed', '内存频率', 'MHz', ma.ram_speed || 0, mb.ram_speed || 0],
+        ['vram_gb', '显存容量', 'GB', ma.vram_gb || 0, mb.vram_gb || 0],
+        ['disk_gb', '硬盘总容量', 'GB', ma.disk_gb || 0, mb.disk_gb || 0],
+      ];
+
+      const fmtM = (k, v, u) => {
+        if (!v) return '-';
+        if (k === 'used_price' || k === 'new_price') return '¥ ' + fmtNum(v);
+        if (k === 'disk_gb' && v >= 990) return (v / 1000).toFixed(2).replace(/\.?0+$/, '') + ' TB';
+        return fmtNum(v) + ' ' + u;
+      };
+
+      document.getElementById('metricsArena').innerHTML = metricDefs
+        .filter(m => m[3] > 0 || m[4] > 0)
+        .map(([k, label, u, va, vb]) => {
+          const mx = Math.max(va, vb, 1);
+          const wa = Math.max(4, Math.round((va / mx) * 100));
+          const wb = Math.max(4, Math.round((vb / mx) * 100));
+          const tag = (k === 'used_price' || k === 'new_price') ? '更贵' : '更高';
+          return `
+            <div class="metric-row">
+              <div class="metric-title">${label}</div>
+              <div class="bars-wrap">
+                <div class="bar-line">
+                  <div class="bar-track"><div class="bar-fill fill-a" style="width:${va ? wa : 0}%"></div></div>
+                  <div class="bar-val">
+                    <span>${fmtM(k, va, u)}</span>
+                    ${va > vb ? `<span class="win-badge">${tag}</span>` : ''}
+                  </div>
+                </div>
+                <div class="bar-line">
+                  <div class="bar-track"><div class="bar-fill fill-b" style="width:${vb ? wb : 0}%"></div></div>
+                  <div class="bar-val">
+                    <span>${fmtM(k, vb, u)}</span>
+                    ${vb > va ? `<span class="win-badge">${tag}</span>` : ''}
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+      // Detailed item comparison
+      const iaMap = {};
+      const ibMap = {};
+      const keys = [];
+      ((a.report && a.report.items) || []).forEach(i => { iaMap[i.key] = i; if (!keys.includes(i.key)) keys.push(i.key); });
+      ((b.report && b.report.items) || []).forEach(i => { ibMap[i.key] = i; if (!keys.includes(i.key)) keys.push(i.key); });
+
+      let diffs = 0;
+      const rowsHtml = keys.map(k => {
+        const ia = iaMap[k];
+        const ib = ibMap[k];
+        const label = (ia || ib).label;
+        const ra = (ia && ia.rows) || [];
+        const rb = (ib && ib.rows) || [];
+        const norm = s => (s || '').toLowerCase().replace(/\s+/g, '');
+        const same = JSON.stringify(ra.map(r => norm(r.t))) === JSON.stringify(rb.map(r => norm(r.t)));
+        if (!same) diffs++;
+
+        const renderCell = rows => {
+          if (!rows.length) return '<div class="hw-t" style="color:var(--sub)">—</div>';
+          return rows.map(r => {
+            const ev = r._eval || {};
+            const pStr = ev.used > 0
+              ? `💰 二手 ≈ ¥${fmtNum(ev.used)}  |  全新 ≈ ¥${fmtNum(ev.new)}${ev.reason ? ' · ' + ev.reason : ''}`
+              : (ev.note || '');
+            return `
+              <div class="hw-item">
+                <div class="hw-t">${r.t}</div>
+                ${r.d ? `<div class="hw-d">${r.d}</div>` : ''}
+                ${pStr ? `<div class="hw-p">${pStr}</div>` : ''}
+              </div>
+            `;
+          }).join('');
+        };
+
+        return `
+          <div class="comp-row ${same ? '' : 'diff'}">
+            <div class="comp-cat">
+              <span>${label}</span>
+              <span class="pill" style="background:${same ? '#10b981' : '#f59e0b'}">${same ? '相同' : '不同'}</span>
+            </div>
+            <div>${renderCell(ra)}</div>
+            <div>${renderCell(rb)}</div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('diffSummary').textContent = `共对比 ${keys.length} 类硬件，其中 ${diffs} 类不同`;
+      document.getElementById('detailsArena').innerHTML = rowsHtml;
+    }
+
+    function sortRank(mode) {
+      rankSortMode = mode;
+      renderRankList();
+    }
+
+    function renderRankList() {
+      const sorted = [...ITEMS].sort((a, b) => {
+        if (rankSortMode === 'used') return b.total_used - a.total_used;
+        if (rankSortMode === 'new') return b.total_new - a.total_new;
+        if (rankSortMode === 'time') return (b.updated_at || '').localeCompare(a.updated_at || '');
+        return b.total_score - a.total_score;
+      });
+
+      document.getElementById('rankList').innerHTML = sorted.map((it, i) => {
+        const rkClass = i === 0 ? 'rank-1' : (i === 1 ? 'rank-2' : (i === 2 ? 'rank-3' : ''));
+        return `
+          <div class="rank-card">
+            <div class="rank-num ${rkClass}">#${i + 1}</div>
+            <div>
+              <div style="font-size:17px;font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <span>${it.nickname}</span>
+                <span class="pill tier-${it.overall_tier}">${it.overall_title}</span>
+              </div>
+              <div style="font-size:12px;color:var(--sub);margin-top:3px">${it.model} · 上传于 ${it.updated_at || it.scan_time}</div>
+            </div>
+            <div class="hw-brief">
+              <div><strong>CPU:</strong> ${it.cpu_name}</div>
+              <div><strong>显卡:</strong> ${it.gpu_name}</div>
+              <div><strong>内存:</strong> ${it.ram_desc}</div>
+            </div>
+            <div>
+              <div style="font-size:15px;font-weight:800;color:#34d399">战力 ${fmtNum(it.total_score)} 分</div>
+              <div style="font-size:13px;font-weight:700;color:var(--gold)">二手 ≈ ¥${fmtNum(it.total_used)}</div>
+              <div style="font-size:12px;color:var(--sub)">全新 ≈ ¥${fmtNum(it.total_new)}</div>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="pickForPK('${it.id}', 'A')">设为蓝方</button>
+              <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px;border-color:#f97316;color:#fb923c" onclick="pickForPK('${it.id}', 'B')">设为红方</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function pickForPK(cid, side) {
+      if (side === 'A') idA = cid;
+      else idB = cid;
+      document.getElementById('selA').value = idA;
+      document.getElementById('selB').value = idB;
+      onSelectChange();
+      switchTab('pk');
+      showToast(`已切换${side === 'A' ? '蓝方' : '红方'}配置，开始 PK！`);
+    }
+
+    function copyShareLink() {
+      const url = `${window.location.origin}/?pk=${idA || ''},${idB || ''}`;
+      navigator.clipboard.writeText(url).then(() => {
+        showToast('✔ 专属双机 PK 链接已复制到剪贴板，快发给好友吧！');
+      });
+    }
+
+    document.getElementById('fileInput').addEventListener('change', async (ev) => {
+      const f = ev.target.files[0];
+      if (!f) return;
+      try {
+        const text = await f.text();
+        const json = JSON.parse(text);
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(json),
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || '上传失败');
+        showToast(`🎉 上传成功！「${data.summary.nickname}」当前位列全服第 #${data.rank} 名`);
+        idA = data.id;
+        await loadConfigs();
+        switchTab('pk');
+      } catch (err) {
+        alert('配置文件上传失败: ' + err.message);
+      } finally {
+        ev.target.value = '';
+      }
+    });
+
+    loadConfigs();
+  </script>
+</body>
+</html>
+
