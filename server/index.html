@@ -3,319 +3,676 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>硬件配置云端 PK 竞技场 & 全服天梯榜 · HardwareShot</title>
+  <title>硬件配置云端 PK 竞技场 & 全服风云榜 · HardwareShot</title>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
     :root {
       --bg: #0b0f19;
       --card: #131b2e;
       --card-hover: #19233c;
-      --border: #243252;
+      --card-border: #243252;
       --text: #f1f5f9;
       --sub: #94a3b8;
       --cyan: #00f0ff;
       --blue: #3b82f6;
       --orange: #f97316;
-      --pink: #ff247d;
+      --purple: #a855f7;
       --green: #10b981;
       --gold: #fde047;
+      --pink: #ec4899;
+      --red: #ef4444;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background: radial-gradient(circle at 50% 0%, #162447 0%, var(--bg) 55%);
+      background: radial-gradient(circle at 50% 0%, #162447 0%, var(--bg) 60%);
       color: var(--text);
       font-family: "Microsoft YaHei UI", "PingFang SC", -apple-system, BlinkMacSystemFont, sans-serif;
       min-height: 100vh;
       line-height: 1.5;
+      padding-bottom: 110px; /* 为底部 PK Dock 留出空间 */
     }
-    .container { max-width: 1220px; margin: 0 auto; padding: 24px 18px 64px; }
+    .container { max-width: 1280px; margin: 0 auto; padding: 20px 16px; }
 
-    /* Header */
+    /* Top Hero Header */
     .hero {
-      background: linear-gradient(135deg, rgba(10,86,216,0.35) 0%, rgba(225,0,105,0.22) 100%);
-      border: 1px solid var(--border);
+      background: linear-gradient(135deg, rgba(10,86,216,0.32) 0%, rgba(168,85,247,0.2) 50%, rgba(249,115,22,0.18) 100%);
+      border: 1px solid var(--card-border);
       border-radius: 18px;
-      padding: 26px 28px;
+      padding: 24px 28px;
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
-      gap: 18px;
-      margin-bottom: 24px;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+      gap: 16px;
+      margin-bottom: 20px;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.4);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      top: -40px; right: -40px;
+      width: 180px; height: 180px;
+      background: radial-gradient(circle, rgba(0,240,255,0.2) 0%, transparent 70%);
+      pointer-events: none;
     }
     .hero-tag {
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 1.5px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 2px;
       color: var(--cyan);
       text-transform: uppercase;
-      margin-bottom: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
     }
     .hero h1 {
-      font-size: 28px;
-      font-weight: 800;
+      font-size: 27px;
+      font-weight: 900;
       background: linear-gradient(90deg, #ffffff, #93c5fd, #00f0ff);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      letter-spacing: 0.5px;
     }
-    .hero p { color: var(--sub); font-size: 14px; margin-top: 4px; }
+    .hero p { color: var(--sub); font-size: 13.5px; margin-top: 4px; }
     .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+    /* Buttons */
     .btn {
       display: inline-flex;
       align-items: center;
-      gap: 7px;
-      padding: 10px 18px;
+      gap: 6px;
+      padding: 9px 16px;
       border-radius: 10px;
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 700;
       cursor: pointer;
       border: 1px solid transparent;
       text-decoration: none;
-      transition: all 0.18s;
+      transition: all 0.16s ease-in-out;
       color: white;
+      white-space: nowrap;
     }
+    .btn:active { transform: scale(0.97); }
     .btn-primary { background: linear-gradient(135deg, #0a56d8, #0284c7); border-color: #38bdf8; }
-    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 18px rgba(56,189,248,0.35); }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(56,189,248,0.35); }
     .btn-green { background: linear-gradient(135deg, #059669, #10b981); border-color: #34d399; }
-    .btn-green:hover { transform: translateY(-1px); box-shadow: 0 4px 18px rgba(16,185,129,0.35); }
-    .btn-ghost { background: rgba(255,255,255,0.06); border-color: var(--border); color: var(--text); }
+    .btn-green:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(16,185,129,0.35); }
+    .btn-orange { background: linear-gradient(135deg, #ea580c, #f97316); border-color: #fdba74; }
+    .btn-orange:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(249,115,22,0.35); }
+    .btn-ghost { background: rgba(255,255,255,0.06); border-color: var(--card-border); color: var(--text); }
     .btn-ghost:hover { background: rgba(255,255,255,0.12); border-color: var(--cyan); }
+    .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 7px; }
 
-    /* Tabs */
-    .nav-tabs {
-      display: flex;
+    /* Highlights Bar (4 Cards) */
+    .highlights-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
       gap: 12px;
       margin-bottom: 20px;
-      border-bottom: 1px solid var(--border);
+    }
+    @media (max-width: 900px) {
+      .highlights-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 520px) {
+      .highlights-grid { grid-template-columns: 1fr; }
+    }
+    .hl-card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: border-color 0.2s;
+    }
+    .hl-card:hover { border-color: rgba(0,240,255,0.4); }
+    .hl-card::before {
+      content: "";
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 4px;
+    }
+    .hl-card.c1::before { background: var(--gold); }
+    .hl-card.c2::before { background: var(--pink); }
+    .hl-card.c3::before { background: var(--green); }
+    .hl-card.c4::before { background: var(--cyan); }
+    .hl-label { font-size: 11.5px; color: var(--sub); display: flex; align-items: center; gap: 5px; }
+    .hl-title { font-size: 16px; font-weight: 800; color: white; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hl-sub { font-size: 12px; color: var(--cyan); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Navigation Tabs */
+    .nav-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--card-border);
       padding-bottom: 12px;
     }
     .tab-btn {
       background: var(--card);
       color: var(--sub);
-      border: 1px solid var(--border);
-      padding: 10px 22px;
+      border: 1px solid var(--card-border);
+      padding: 9px 20px;
       border-radius: 10px;
-      font-size: 15px;
-      font-weight: 700;
+      font-size: 14.5px;
+      font-weight: 800;
       cursor: pointer;
-      transition: all 0.18s;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 0.16s;
     }
+    .tab-btn:hover { color: white; border-color: rgba(255,255,255,0.25); }
     .tab-btn.active {
-      background: linear-gradient(135deg, #1d4ed8, #0369a1);
+      background: linear-gradient(135deg, #1d4ed8, #0ea5e9);
       color: white;
-      border-color: var(--cyan);
-      box-shadow: 0 0 18px rgba(0,240,255,0.2);
+      border-color: #38bdf8;
+      box-shadow: 0 4px 18px rgba(14,165,233,0.3);
+    }
+    .tab-badge {
+      background: rgba(0,0,0,0.3);
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-size: 11px;
     }
 
-    /* Cards */
-    .card {
+    /* Filters & Search Toolbar */
+    .toolbar {
       background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 22px;
-      margin-bottom: 20px;
-      box-shadow: 0 8px 28px rgba(0,0,0,0.25);
-    }
-    .card-header {
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 12px 16px;
       display: flex;
+      flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
-      flex-wrap: wrap;
       gap: 12px;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
     }
-    .card-title { font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
-
-    /* Tier Pills */
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      padding: 3px 10px;
-      border-radius: 999px;
-      font-size: 12px;
+    .sort-group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .sort-label { font-size: 12px; color: var(--sub); margin-right: 4px; font-weight: 700; }
+    .sort-pill {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--card-border);
+      color: var(--sub);
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 12.5px;
       font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .sort-pill:hover { color: white; border-color: rgba(255,255,255,0.2); }
+    .sort-pill.active {
+      background: rgba(0,240,255,0.15);
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+    .search-box {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .search-box input {
+      background: #0b1120;
+      border: 1px solid var(--card-border);
       color: white;
-      white-space: nowrap;
+      padding: 7px 12px 7px 30px;
+      border-radius: 8px;
+      font-size: 13px;
+      width: 220px;
+      outline: none;
+      transition: border-color 0.2s;
     }
-    .tier-T0 { background: linear-gradient(135deg, #e11d48, #ff247d); }
-    .tier-T1 { background: linear-gradient(135deg, #d97706, #f59e0b); }
-    .tier-T2 { background: linear-gradient(135deg, #059669, #10b981); }
-    .tier-T3 { background: linear-gradient(135deg, #2563eb, #3b82f6); }
-    .tier-T4 { background: #64748b; }
+    .search-box input:focus { border-color: var(--cyan); width: 260px; }
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      color: var(--sub);
+      font-size: 13px;
+      pointer-events: none;
+    }
 
-    /* PK Selector Grid */
-    .pk-banner {
-      display: grid;
-      grid-template-columns: 1fr 84px 1fr;
-      gap: 16px;
-      align-items: stretch;
+    /* Leaderboard Cards Grid */
+    .leaderboard-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
-    @media (max-width: 820px) {
-      .pk-banner { grid-template-columns: 1fr; }
-      .vs-center { padding: 8px 0; }
-    }
-    .fighter-box {
-      background: rgba(11, 15, 25, 0.65);
+    .rank-row {
+      background: var(--card);
+      border: 1px solid var(--card-border);
       border-radius: 14px;
-      padding: 18px;
-      border: 2px solid transparent;
+      padding: 16px 20px;
+      display: grid;
+      grid-template-columns: 56px 1.4fr 1.8fr 180px 200px;
+      gap: 14px;
+      align-items: center;
+      transition: all 0.18s ease;
       position: relative;
     }
-    .fighter-a { border-color: rgba(0, 240, 255, 0.55); }
-    .fighter-b { border-color: rgba(249, 115, 22, 0.65); }
-    .fighter-select {
-      width: 100%;
-      background: #17223b;
-      color: white;
-      border: 1px solid var(--border);
-      padding: 9px 12px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 700;
-      margin-bottom: 12px;
-      outline: none;
+    @media (max-width: 1100px) {
+      .rank-row { grid-template-columns: 50px 1.2fr 1.6fr 150px auto; gap: 10px; }
     }
-    .fighter-name { font-size: 20px; font-weight: 800; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .fighter-a .fighter-name { color: var(--cyan); }
-    .fighter-b .fighter-name { color: var(--orange); }
-    .fighter-sub { font-size: 13px; color: var(--sub); margin-bottom: 12px; }
-    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .stat-cell {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 10px;
-      padding: 8px 10px;
+    @media (max-width: 820px) {
+      .rank-row {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding: 14px 16px;
+      }
     }
-    .stat-label { font-size: 11px; color: var(--sub); }
-    .stat-val { font-size: 16px; font-weight: 800; margin-top: 2px; }
-    .vs-center {
+    .rank-row:hover {
+      border-color: rgba(59,130,246,0.6);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      background: var(--card-hover);
+    }
+    .rank-row.top-1 {
+      border-color: rgba(253,224,71,0.6);
+      background: linear-gradient(135deg, rgba(253,224,71,0.06), var(--card));
+      box-shadow: 0 0 20px rgba(253,224,71,0.15);
+    }
+    .rank-row.top-2 { border-color: rgba(148,163,184,0.5); }
+    .rank-row.top-3 { border-color: rgba(249,115,22,0.5); }
+    .rank-num-box {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 8px;
     }
-    .vs-circle {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #e11d48, #f97316);
+    .rank-num { font-size: 22px; font-weight: 900; line-height: 1; }
+    .top-1 .rank-num { color: var(--gold); text-shadow: 0 0 10px rgba(253,224,71,0.6); }
+    .top-2 .rank-num { color: #cbd5e1; }
+    .top-3 .rank-num { color: var(--orange); }
+    .other .rank-num { color: #64748b; font-size: 18px; }
+    .rank-crown { font-size: 14px; margin-bottom: 2px; }
+
+    /* Player & Tag Info */
+    .player-col { overflow: hidden; }
+    .player-title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+    .player-nick { font-size: 16px; font-weight: 800; color: white; }
+    .tier-badge {
+      font-size: 11px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+    .tier-T0 { background: #7c2d12; color: #fdba74; border: 1px solid #ea580c; }
+    .tier-T1 { background: #1e1b4b; color: #c7d2fe; border: 1px solid #6366f1; }
+    .tier-T2 { background: #064e3b; color: #a7f3d0; border: 1px solid #10b981; }
+    .tier-T3 { background: #172554; color: #bae6fd; border: 1px solid #38bdf8; }
+    .tier-T4 { background: #27272a; color: #e4e4e7; border: 1px solid #52525b; }
+
+    .fun-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: rgba(236,72,153,0.18);
+      color: #f472b6;
+      border: 1px solid rgba(236,72,153,0.4);
+      white-space: nowrap;
+    }
+    .player-sub { font-size: 12px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Hardware Specs Pills */
+    .specs-col { display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
+    .spec-line {
+      font-size: 12px;
+      color: #cbd5e1;
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      font-weight: 900;
-      box-shadow: 0 0 24px rgba(225, 29, 72, 0.5);
+      gap: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .spec-icon { color: var(--cyan); font-size: 13px; flex-shrink: 0; }
+
+    /* Score & Valuation */
+    .score-col { text-align: right; }
+    .score-val { font-size: 21px; font-weight: 900; color: var(--cyan); line-height: 1.1; }
+    .score-label { font-size: 11px; color: var(--sub); }
+    .price-sub { font-size: 11.5px; color: #cbd5e1; margin-top: 4px; }
+    .price-used { color: var(--orange); font-weight: 800; }
+    .value-ratio-badge {
+      font-size: 10.5px;
+      color: var(--green);
+      font-weight: 800;
+      background: rgba(16,185,129,0.12);
+      padding: 1px 6px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-top: 2px;
     }
 
-    /* Metric Bars */
+    /* Actions Col */
+    .actions-col { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+
+    /* Bottom Floating PK Dock (常驻底部对决池) */
+    .pk-dock {
+      position: fixed;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(1240px, calc(100% - 24px));
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1.5px solid rgba(0, 240, 255, 0.4);
+      border-radius: 18px;
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.7), 0 0 25px rgba(0,240,255,0.2);
+      z-index: 1000;
+      transition: all 0.25s ease;
+    }
+    .dock-left { display: flex; align-items: center; gap: 14px; flex-grow: 1; overflow-x: auto; }
+    .dock-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--cyan);
+      display: flex;
+      flex-direction: column;
+      white-space: nowrap;
+    }
+    .dock-title span { font-size: 11px; color: var(--sub); font-weight: normal; }
+    .dock-slots { display: flex; align-items: center; gap: 10px; }
+    .dock-slot {
+      width: 170px;
+      height: 54px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px dashed var(--card-border);
+      display: flex;
+      align-items: center;
+      padding: 6px 10px;
+      position: relative;
+      transition: all 0.2s;
+    }
+    .dock-slot.filled {
+      border-style: solid;
+      border-color: rgba(59,130,246,0.6);
+      background: #17223b;
+    }
+    .dock-slot.empty {
+      justify-content: center;
+      font-size: 11.5px;
+      color: #64748b;
+    }
+    .slot-info { overflow: hidden; flex-grow: 1; }
+    .slot-name { font-size: 12.5px; font-weight: 800; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .slot-sub { font-size: 11px; color: var(--cyan); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .slot-del {
+      cursor: pointer;
+      color: #64748b;
+      font-size: 14px;
+      padding: 4px;
+      transition: color 0.15s;
+    }
+    .slot-del:hover { color: var(--red); }
+    .dock-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+    /* View 2: Multi-PC Arena (多机横向大乱斗) */
+    #viewPk { display: none; }
+    .arena-header {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 18px 24px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+    }
+    .arena-title-box h2 { font-size: 22px; font-weight: 900; color: white; display: flex; align-items: center; gap: 8px; }
+    .arena-title-box p { font-size: 13px; color: var(--sub); margin-top: 3px; }
+
+    /* Podiums / Honours (颁奖台) */
+    .podium-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 900px) {
+      .podium-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 500px) {
+      .podium-grid { grid-template-columns: 1fr; }
+    }
+    .podium-card {
+      background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .podium-icon { font-size: 26px; }
+    .podium-info { overflow: hidden; }
+    .podium-label { font-size: 11px; color: var(--sub); }
+    .podium-winner { font-size: 14px; font-weight: 800; color: var(--gold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .podium-val { font-size: 11.5px; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* AI Fun Match Commentary (战报点评) */
+    .match-commentary {
+      background: rgba(0, 240, 255, 0.05);
+      border: 1px dashed var(--cyan);
+      border-radius: 12px;
+      padding: 12px 18px;
+      margin-bottom: 20px;
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: #e2e8f0;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .commentary-tag {
+      background: var(--cyan);
+      color: black;
+      font-size: 11px;
+      font-weight: 900;
+      padding: 2px 7px;
+      border-radius: 5px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* Multi-Fighter Matrix Grid (横向对比矩阵) */
+    .matrix-grid {
+      display: grid;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .matrix-col-2 { grid-template-columns: repeat(2, 1fr); }
+    .matrix-col-3 { grid-template-columns: repeat(3, 1fr); }
+    .matrix-col-4 { grid-template-columns: repeat(4, 1fr); }
+    @media (max-width: 900px) {
+      .matrix-col-3, .matrix-col-4 { grid-template-columns: 1fr; }
+      .matrix-col-2 { grid-template-columns: 1fr; }
+    }
+
+    .fighter-card {
+      background: var(--card);
+      border-radius: 16px;
+      border: 2px solid var(--card-border);
+      padding: 20px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .fighter-card.c-0 { border-color: rgba(0,240,255,0.7); box-shadow: 0 0 20px rgba(0,240,255,0.15); }
+    .fighter-card.c-1 { border-color: rgba(249,115,22,0.7); box-shadow: 0 0 20px rgba(249,115,22,0.15); }
+    .fighter-card.c-2 { border-color: rgba(168,85,247,0.7); box-shadow: 0 0 20px rgba(168,85,247,0.15); }
+    .fighter-card.c-3 { border-color: rgba(16,185,129,0.7); box-shadow: 0 0 20px rgba(16,185,129,0.15); }
+
+    .fighter-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .fighter-name-box h3 { font-size: 20px; font-weight: 900; color: white; display: flex; align-items: center; gap: 8px; }
+    .fighter-name-box p { font-size: 12.5px; color: var(--sub); margin-top: 3px; }
+    .fighter-score-box { text-align: right; }
+    .fighter-score-num { font-size: 26px; font-weight: 900; line-height: 1; }
+    .c-0 .fighter-score-num { color: var(--cyan); }
+    .c-1 .fighter-score-num { color: var(--orange); }
+    .c-2 .fighter-score-num { color: var(--purple); }
+    .c-3 .fighter-score-num { color: var(--green); }
+
+    .fighter-stats-bar {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      background: rgba(255,255,255,0.03);
+      padding: 10px;
+      border-radius: 10px;
+    }
+    .stat-mini-box { text-align: center; }
+    .stat-mini-label { font-size: 11px; color: var(--sub); }
+    .stat-mini-val { font-size: 14px; font-weight: 800; color: #f1f5f9; margin-top: 2px; }
+
+    /* Fighter Parts List */
+    .fighter-parts-list { display: flex; flex-direction: column; gap: 8px; }
+    .part-box {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 10px 12px;
+      position: relative;
+    }
+    .part-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
+    .part-type { font-size: 11px; font-weight: 800; color: var(--cyan); display: flex; align-items: center; gap: 4px; }
+    .part-price-badge { font-size: 11px; color: var(--orange); font-weight: 700; }
+    .part-main-title { font-size: 13px; font-weight: 700; color: white; line-height: 1.4; }
+    .part-sub-info { font-size: 11.5px; color: var(--sub); margin-top: 2px; }
+    .part-winner-crown {
+      position: absolute;
+      right: 8px; top: 8px;
+      font-size: 14px;
+    }
+
+    /* Metric Bars Section (对决指标横向对比) */
+    .metric-section {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 22px;
+      margin-bottom: 24px;
+    }
+    .metric-section h3 { font-size: 17px; font-weight: 800; margin-bottom: 16px; color: white; }
     .metric-row {
       display: grid;
       grid-template-columns: 140px 1fr;
-      gap: 14px;
+      gap: 16px;
       align-items: center;
       padding: 10px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
     }
     .metric-row:last-child { border-bottom: none; }
-    .metric-title { font-size: 14px; font-weight: 700; color: var(--text); }
-    .bars-wrap { display: flex; flex-direction: column; gap: 7px; }
-    .bar-line { display: flex; align-items: center; gap: 10px; }
-    .bar-track {
-      flex: 1;
-      height: 16px;
-      background: #0b101d;
-      border-radius: 999px;
+    .metric-name { font-size: 13px; font-weight: 700; color: #cbd5e1; }
+    .metric-bars-box { display: flex; flex-direction: column; gap: 6px; }
+    .m-bar-item { display: flex; align-items: center; gap: 10px; }
+    .m-bar-label { width: 90px; font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .m-bar-track {
+      flex-grow: 1;
+      height: 12px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 6px;
       overflow: hidden;
+      position: relative;
     }
-    .bar-fill { height: 100%; border-radius: 999px; transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
-    .fill-a { background: linear-gradient(90deg, #0284c7, #00f0ff); }
-    .fill-b { background: linear-gradient(90deg, #ea580c, #fb923c); }
-    .bar-val { width: 165px; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
-    .win-badge {
-      background: var(--green);
-      color: white;
-      font-size: 11px;
-      padding: 1px 7px;
-      border-radius: 999px;
-      font-weight: 700;
-    }
+    .m-bar-fill { height: 100%; border-radius: 6px; transition: width 0.6s ease; }
+    .m-bar-val { width: 95px; font-size: 12px; font-weight: 800; text-align: right; }
 
-    /* Detail Comparison Table */
-    .comp-row {
-      display: grid;
-      grid-template-columns: 110px 1fr 1fr;
-      gap: 16px;
-      padding: 14px;
-      border-radius: 12px;
-      margin-bottom: 10px;
-      background: rgba(255,255,255,0.02);
-      border: 1px solid rgba(255,255,255,0.05);
-    }
-    .comp-row.diff {
-      background: rgba(30, 58, 138, 0.18);
-      border-color: rgba(59, 130, 246, 0.35);
-    }
-    @media (max-width: 760px) {
-      .comp-row { grid-template-columns: 1fr; gap: 8px; }
-      .metric-row { grid-template-columns: 1fr; gap: 6px; }
-    }
-    .comp-cat { font-size: 15px; font-weight: 800; color: var(--cyan); display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
-    .hw-item { margin-bottom: 8px; }
-    .hw-item:last-child { margin-bottom: 0; }
-    .hw-t { font-size: 15px; font-weight: 700; color: var(--text); }
-    .hw-d { font-size: 12px; color: var(--sub); margin-top: 2px; }
-    .hw-p { font-size: 12px; color: var(--gold); font-weight: 700; margin-top: 3px; }
-
-    /* Leaderboard Table */
-    .rank-list { display: flex; flex-direction: column; gap: 12px; }
-    .rank-card {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 16px 18px;
-      display: grid;
-      grid-template-columns: 52px 1.3fr 1.6fr 1fr auto;
-      gap: 14px;
-      align-items: center;
-      transition: all 0.15s;
-    }
-    .rank-card:hover { background: var(--card-hover); border-color: #3b82f6; }
-    @media (max-width: 900px) {
-      .rank-card { grid-template-columns: 1fr; }
-    }
-    .rank-num {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
+    /* Modals (模态框通用) */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 16px;
-      font-weight: 900;
-      background: rgba(255,255,255,0.06);
-      color: var(--sub);
+      z-index: 2000;
+      padding: 16px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
     }
-    .rank-1 { background: linear-gradient(135deg, #f59e0b, #fde047); color: #0f172a; }
-    .rank-2 { background: linear-gradient(135deg, #94a3b8, #e2e8f0); color: #0f172a; }
-    .rank-3 { background: linear-gradient(135deg, #b45309, #fb923c); color: #fff; }
-    .hw-brief { font-size: 13px; color: var(--sub); line-height: 1.55; }
-    .hw-brief strong { color: var(--text); }
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-box {
+      background: #111827;
+      border: 1.5px solid var(--cyan);
+      border-radius: 18px;
+      width: min(840px, 100%);
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 24px 28px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 30px rgba(0,240,255,0.25);
+      position: relative;
+    }
+    .modal-close-btn {
+      position: absolute;
+      top: 18px; right: 18px;
+      background: rgba(255,255,255,0.08);
+      border: none;
+      color: #94a3b8;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .modal-close-btn:hover { background: var(--red); color: white; }
 
-    /* Toast */
+    /* Poster Preview Modal */
+    .poster-preview-card {
+      text-align: center;
+      margin: 16px 0;
+      max-height: 60vh;
+      overflow-y: auto;
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+      background: #080c14;
+      padding: 12px;
+    }
+    .poster-preview-img { max-width: 100%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+
+    /* Toast Notification */
     #toast {
       position: fixed;
-      top: 22px;
+      top: 24px;
       left: 50%;
       transform: translateX(-50%);
       background: #1e293b;
       color: white;
       border: 1px solid var(--cyan);
-      padding: 12px 22px;
+      padding: 10px 20px;
       border-radius: 12px;
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 700;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
       z-index: 9999;
       display: none;
     }
@@ -326,405 +683,1050 @@
   <input type="file" id="fileInput" accept=".json" style="display:none" />
 
   <div class="container">
-    <!-- Hero -->
+    <!-- Hero Header -->
     <div class="hero">
       <div>
-        <div class="hero-tag">HARDWARESHOT CLOUD ARENA · SA1</div>
-        <h1>⚡ 硬件配置云端 PK 竞技场 & 全服天梯榜</h1>
-        <p>一键上传本机配置 · 双机战力与闲鱼/全新身价实时 PK · 全服硬件段位排行</p>
+        <div class="hero-tag">⚡ HARDWARESHOT CLOUD ARENA · SA1</div>
+        <h1>硬件配置云端 PK 竞技场 & 全服风云榜</h1>
+        <p>一键多机对决 · 身价与战力 PK · 赛博装机档案 · 高清长图一键分享</p>
       </div>
       <div class="hero-actions">
         <button class="btn btn-green" onclick="document.getElementById('fileInput').click()">
-          📤 上传配置文件 (.json)
+          📤 上传配置 (.json)
         </button>
-        <button class="btn btn-primary" onclick="copyShareLink()">
-          🔗 复制当前 PK 链接
+        <button class="btn btn-orange" onclick="triggerRandomPk()">
+          🎲 随机神仙打架 (PK)
         </button>
         <a class="btn btn-ghost" href="/download/硬件配置助手.zip">
-          ⬇️ 下载桌面客户端 (.zip)
+          ⬇️ 客户端下载 (.zip)
         </a>
+      </div>
+    </div>
+
+    <!-- Highlights 4 Cards (全服风云简报) -->
+    <div class="highlights-grid">
+      <div class="hl-card c1">
+        <div class="hl-label">👑 全服霸榜卡皇</div>
+        <div class="hl-title" id="hlKingTitle">-</div>
+        <div class="hl-sub" id="hlKingSub">战力 - 分</div>
+      </div>
+      <div class="hl-card c2">
+        <div class="hl-label">💰 赛博首富 (身价最高)</div>
+        <div class="hl-title" id="hlRichTitle">-</div>
+        <div class="hl-sub" id="hlRichSub">二手 - / 全新 -</div>
+      </div>
+      <div class="hl-card c3">
+        <div class="hl-label">🚀 今日质价比神机</div>
+        <div class="hl-title" id="hlRatioTitle">-</div>
+        <div class="hl-sub" id="hlRatioSub">质价比指数 -</div>
+      </div>
+      <div class="hl-card c4">
+        <div class="hl-label">🖥️ 全服收录电脑数</div>
+        <div class="hl-title" id="hlCountTitle">0 台</div>
+        <div class="hl-sub">实时天梯段位排位</div>
       </div>
     </div>
 
     <!-- Navigation Tabs -->
     <div class="nav-tabs">
-      <button class="tab-btn active" id="tabBtnPk" onclick="switchTab('pk')">⚔️ 在线双机 PK 竞技场</button>
-      <button class="tab-btn" id="tabBtnRank" onclick="switchTab('rank')">🏆 全服配置风云榜 (<span id="totalCount">0</span>)</button>
+      <button class="tab-btn active" id="tabBtnRank" onclick="switchTab('rank')">
+        🏆 全服天梯风云榜 <span class="tab-badge" id="tabRankCount">0</span>
+      </button>
+      <button class="tab-btn" id="tabBtnPk" onclick="switchTab('pk')">
+        ⚔️ 多机 PK 竞技场 <span class="tab-badge" id="tabPkCount">0</span>
+      </button>
     </div>
 
-    <!-- View 1: PK Arena -->
+    <!-- VIEW 1: Leaderboard (全服天梯排行榜) -->
+    <div id="viewRank">
+      <div class="toolbar">
+        <div class="sort-group">
+          <span class="sort-label">排序:</span>
+          <button class="sort-pill active" onclick="setSort('score')">⚡ 综合战力</button>
+          <button class="sort-pill" onclick="setSort('used')">💰 二手残值</button>
+          <button class="sort-pill" onclick="setSort('new')">🏷️ 全新参考</button>
+          <button class="sort-pill" onclick="setSort('ratio')">🚀 质价比神机</button>
+          <button class="sort-pill" onclick="setSort('time')">⏱️ 最新上传</button>
+        </div>
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="搜索玩家、CPU、显卡型号..." oninput="onSearchChange()" />
+        </div>
+      </div>
+
+      <div class="leaderboard-list" id="rankList">
+        <!-- 列表由 JS 动态生成 -->
+      </div>
+    </div>
+
+    <!-- VIEW 2: Multi-PC Arena (多机横向大乱斗) -->
     <div id="viewPk">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">⚔️ 选择对战双方 (支持下拉切换任意已上传玩家电脑)</div>
-          <button class="btn btn-ghost" style="padding:6px 14px;font-size:13px" onclick="swapFighters()">⇄ 互换左右位置</button>
+      <div class="arena-header">
+        <div class="arena-title-box">
+          <h2>⚔️ 在线多机横向对决竞技场</h2>
+          <p>支持 2~4 台电脑同屏大比拼 · 核心硬件多维度胜负裁决</p>
         </div>
-        <div class="pk-banner">
-          <!-- Fighter A -->
-          <div class="fighter-box fighter-a">
-            <select id="selA" class="fighter-select" onchange="onSelectChange()"></select>
-            <div id="boxA"></div>
-          </div>
-          <!-- VS Center -->
-          <div class="vs-center">
-            <div class="vs-circle">PK</div>
-            <div id="pkDiffText" style="font-size:12px;color:var(--sub);text-align:center"></div>
-          </div>
-          <!-- Fighter B -->
-          <div class="fighter-box fighter-b">
-            <select id="selB" class="fighter-select" onchange="onSelectChange()"></select>
-            <div id="boxB"></div>
-          </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn btn-green" onclick="generatePkPoster()">📸 生成战报长图 (复制/保存)</button>
+          <button class="btn btn-primary" onclick="copyPkShareLink()">🔗 复制对决链接</button>
+          <button class="btn btn-orange" onclick="triggerRandomPk()">🎲 换一组神仙打架</button>
+          <button class="btn btn-ghost" onclick="switchTab('rank')">← 返回风云榜选人</button>
         </div>
       </div>
 
-      <!-- Key Metrics Bar Chart -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">📊 关键性能跑分与市场身价对比</div>
-        </div>
-        <div id="metricsArena"></div>
+      <!-- Podiums (单项王者颁奖台) -->
+      <div class="podium-grid" id="podiumGrid"></div>
+
+      <!-- AI Fun Commentary (风趣战报) -->
+      <div class="match-commentary" id="matchCommentary">
+        <span class="commentary-tag">战报播报</span>
+        <div id="commentaryText">正在智能分析对决数据...</div>
       </div>
 
-      <!-- Detailed Spec Comparison -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">🔍 详细硬件规格与单项估值逐项对比</div>
-          <div id="diffSummary" style="font-size:13px;color:var(--sub)"></div>
-        </div>
-        <div id="detailsArena"></div>
-      </div>
-    </div>
+      <!-- Multi-Fighter Matrix Grid (硬件横向对照卡片) -->
+      <div class="matrix-grid" id="matrixGrid"></div>
 
-    <!-- View 2: Leaderboard -->
-    <div id="viewRank" style="display:none">
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">🏆 全服玩家硬件配置天梯排行</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px" onclick="sortRank('score')">按综合战力</button>
-            <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px" onclick="sortRank('used')">按二手残值</button>
-            <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px" onclick="sortRank('new')">按全新参考价</button>
-            <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px" onclick="sortRank('time')">按最新上传</button>
-          </div>
-        </div>
-        <div class="rank-list" id="rankList"></div>
+      <!-- Metric Bars Section (10项对比条) -->
+      <div class="metric-section">
+        <h3>📊 核心指标同屏对照条 (胜出者标有 👑)</h3>
+        <div id="metricsBarsList"></div>
       </div>
     </div>
   </div>
 
+  <!-- Bottom Floating PK Dock (常驻底部悬浮对战池) -->
+  <div class="pk-dock" id="pkDock">
+    <div class="dock-left">
+      <div class="dock-title">
+        ⚔️ PK 对战池
+        <span id="dockCountHint">已选 0/4 台</span>
+      </div>
+      <div class="dock-slots" id="dockSlots"></div>
+    </div>
+    <div class="dock-right">
+      <button class="btn btn-orange btn-sm" onclick="triggerRandomPk()">🎲 随机摇人</button>
+      <button class="btn btn-primary btn-sm" id="btnLaunchPk" onclick="openPkArena()">⚔️ 开启 PK 对决</button>
+      <button class="btn btn-ghost btn-sm" onclick="clearDock()">清空</button>
+    </div>
+  </div>
+
+  <!-- MODAL 1: Detail Modal (电脑特工档案) -->
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal-box" id="detailModalContent">
+      <button class="modal-close-btn" onclick="closeDetailModal()">✕</button>
+      <div id="detailBody"></div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: Poster Generator Modal (长图预览与复制保存) -->
+  <div class="modal-overlay" id="posterModal">
+    <div class="modal-box" style="width:min(680px, 100%);">
+      <button class="modal-close-btn" onclick="closePosterModal()">✕</button>
+      <h3 style="font-size:18px;font-weight:900;color:white;display:flex;align-items:center;gap:8px;">
+        📸 高清长图已生成
+      </h3>
+      <p style="font-size:12.5px;color:var(--sub);margin-top:3px;">
+        已渲染完成，支持一键写入系统剪贴板（微信/QQ直接 Ctrl+V 发送）或下载图片
+      </p>
+
+      <div class="poster-preview-card">
+        <img id="posterPreviewImg" class="poster-preview-img" src="" alt="长图预览" />
+      </div>
+
+      <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; margin-top:14px;">
+        <button class="btn btn-green" id="btnCopyPoster" onclick="copyPosterToClipboard()">📋 复制到剪贴板 (Ctrl+V)</button>
+        <button class="btn btn-primary" id="btnDownloadPoster" onclick="downloadPosterImage()">⬇️ 下载高清图片</button>
+        <button class="btn btn-ghost" onclick="closePosterModal()">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden Sandbox For Poster Rendering -->
+  <div id="posterSandbox" style="position:fixed;left:-9999px;top:-9999px;width:760px;background:#0b0f19;color:#f1f5f9;"></div>
+
   <script>
-    let ITEMS = [];
-    let idA = null;
-    let idB = null;
-    let rankSortMode = 'score';
+    // Global State
+    let allConfigs = [];
+    let currentSort = 'score';
+    let searchQuery = '';
+    let selectedIds = []; // 选入 PK Dock 的短 ID (最多4台)
+    let currentDetailConfig = null;
+    let generatedBlob = null;
+    let generatedFileName = 'HardwareShot.png';
 
-    function showToast(msg) {
-      const el = document.getElementById('toast');
-      el.textContent = msg;
-      el.style.display = 'block';
-      clearTimeout(window._toastTimer);
-      window._toastTimer = setTimeout(() => { el.style.display = 'none'; }, 3400);
+    const COLOR_CLASSES = ['c-0', 'c-1', 'c-2', 'c-3'];
+    const THEME_COLORS = ['#00f0ff', '#f97316', '#a855f7', '#10b981'];
+
+    // ------------------------------------------------------------ Data Fetching
+    async function loadData() {
+      try {
+        const res = await fetch('/api/configs');
+        const data = await res.json();
+        allConfigs = data.items || [];
+        updateHighlights();
+        renderRankList();
+        renderDock();
+        handleUrlParams();
+      } catch (err) {
+        showToast('从服务器拉取配置失败: ' + err.message);
+      }
     }
 
-    function fmtNum(n) {
-      return Number(n || 0).toLocaleString('zh-CN');
+    function updateHighlights() {
+      document.getElementById('tabRankCount').innerText = allConfigs.length;
+      document.getElementById('hlCountTitle').innerText = allConfigs.length + ' 台';
+
+      if (!allConfigs.length) return;
+
+      // 1. 卡皇 (GPU 得分最高)
+      const topGpu = [...allConfigs].sort((a,b) => (b.gpu_score||0) - (a.gpu_score||0))[0];
+      if (topGpu) {
+        document.getElementById('hlKingTitle').innerText = topGpu.nickname + ' · ' + (topGpu.gpu_name || '-').split('(')[0];
+        document.getElementById('hlKingSub').innerText = '战力 ' + (topGpu.total_score||0).toLocaleString() + ' 分 | ' + (topGpu.overall_tier||'T0');
+      }
+
+      // 2. 赛博首富 (二手身价最高)
+      const topRich = [...allConfigs].sort((a,b) => (b.total_used||0) - (a.total_used||0))[0];
+      if (topRich) {
+        document.getElementById('hlRichTitle').innerText = topRich.nickname + ' (' + (topRich.model || '台式') + ')';
+        document.getElementById('hlRichSub').innerText = '二手 ≈ ¥' + (topRich.total_used||0).toLocaleString() + ' | 全新 ≈ ¥' + (topRich.total_new||0).toLocaleString();
+      }
+
+      // 3. 质价比神机 (value_ratio 最高)
+      const topRatio = [...allConfigs].sort((a,b) => (b.value_ratio||0) - (a.value_ratio||0))[0];
+      if (topRatio) {
+        document.getElementById('hlRatioTitle').innerText = topRatio.nickname + ' · ' + (topRatio.fun_tag || '捡漏神机');
+        document.getElementById('hlRatioSub').innerText = '质价比指数 ' + (topRatio.value_ratio||0) + ' 分 (¥' + (topRatio.total_used||0) + ')';
+      }
     }
 
+    // ------------------------------------------------------------ View Switching
     function switchTab(tab) {
-      document.getElementById('viewPk').style.display = tab === 'pk' ? 'block' : 'none';
-      document.getElementById('viewRank').style.display = tab === 'rank' ? 'block' : 'none';
-      document.getElementById('tabBtnPk').classList.toggle('active', tab === 'pk');
-      document.getElementById('tabBtnRank').classList.toggle('active', tab === 'rank');
+      const isPk = (tab === 'pk');
+      document.getElementById('viewRank').style.display = isPk ? 'none' : 'block';
+      document.getElementById('viewPk').style.display = isPk ? 'block' : 'none';
+      document.getElementById('tabBtnRank').classList.toggle('active', !isPk);
+      document.getElementById('tabBtnPk').classList.toggle('active', isPk);
+
+      if (isPk) {
+        renderArena();
+      }
     }
 
-    async function loadConfigs() {
-      const res = await fetch('/api/configs');
-      const data = await res.json();
-      ITEMS = data.items || [];
-      document.getElementById('totalCount').textContent = ITEMS.length;
-
-      const params = new URLSearchParams(window.location.search);
-      const pkParam = params.get('pk');
-      const idParam = params.get('id');
-
-      if (pkParam && pkParam.includes(',')) {
-        const [a, b] = pkParam.split(',');
-        idA = a; idB = b;
-      } else if (idParam || pkParam) {
-        idA = idParam || pkParam;
-        const other = ITEMS.find(x => x.id !== idA);
-        idB = other ? other.id : idA;
-      }
-
-      if (!ITEMS.some(x => x.id === idA) && ITEMS.length > 0) idA = ITEMS[0].id;
-      if (!ITEMS.some(x => x.id === idB) && ITEMS.length > 0) {
-        idB = ITEMS.length > 1 ? ITEMS[1].id : ITEMS[0].id;
-      }
-
-      renderSelectors();
-      renderPK();
+    // ------------------------------------------------------------ Leaderboard Filtering & Rendering
+    function setSort(type) {
+      currentSort = type;
+      document.querySelectorAll('.sort-pill').forEach(el => el.classList.remove('active'));
+      event.target.classList.add('active');
       renderRankList();
     }
 
-    function renderSelectors() {
-      const selA = document.getElementById('selA');
-      const selB = document.getElementById('selB');
-      const opts = ITEMS.map((it, idx) =>
-        `<option value="${it.id}">#${idx + 1} ${it.nickname} · ${it.model} (战力 ${fmtNum(it.total_score)} / 二手 ¥${fmtNum(it.total_used)})</option>`
-      ).join('');
-      selA.innerHTML = opts;
-      selB.innerHTML = opts;
-      if (idA) selA.value = idA;
-      if (idB) selB.value = idB;
+    function onSearchChange() {
+      searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
+      renderRankList();
     }
 
-    function onSelectChange() {
-      idA = document.getElementById('selA').value;
-      idB = document.getElementById('selB').value;
-      const url = new URL(window.location.href);
-      url.searchParams.set('pk', `${idA},${idB}`);
-      url.searchParams.delete('id');
-      window.history.replaceState({}, '', url);
-      renderPK();
+    function getFilteredConfigs() {
+      let list = [...allConfigs];
+      if (searchQuery) {
+        list = list.filter(item => {
+          const str = [item.nickname, item.model, item.cpu_name, item.gpu_name, item.fun_tag, item.overall_title].join(' ').toLowerCase();
+          return str.includes(searchQuery);
+        });
+      }
+      list.sort((a, b) => {
+        if (currentSort === 'score') return (b.total_score || 0) - (a.total_score || 0);
+        if (currentSort === 'used') return (b.total_used || 0) - (a.total_used || 0);
+        if (currentSort === 'new') return (b.total_new || 0) - (a.total_new || 0);
+        if (currentSort === 'ratio') return (b.value_ratio || 0) - (a.value_ratio || 0);
+        if (currentSort === 'time') return (b.updated_at || '').localeCompare(a.updated_at || '');
+        return 0;
+      });
+      return list;
     }
 
-    function swapFighters() {
-      const tmp = idA; idA = idB; idB = tmp;
-      document.getElementById('selA').value = idA;
-      document.getElementById('selB').value = idB;
-      onSelectChange();
+    function renderRankList() {
+      const list = getFilteredConfigs();
+      const container = document.getElementById('rankList');
+
+      if (!list.length) {
+        container.innerHTML = `
+          <div style="text-align:center;padding:50px 20px;color:var(--sub);background:var(--card);border-radius:14px;border:1px solid var(--card-border);">
+            <div style="font-size:36px;margin-bottom:10px;">🔍</div>
+            <div style="font-size:16px;font-weight:700;">未找到符合条件的电脑配置</div>
+            <p style="font-size:13px;margin-top:6px;">请尝试更换搜索词，或点击上方「📤 上传配置」新增主机！</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = list.map((item, idx) => {
+        const rank = idx + 1;
+        const topClass = rank === 1 ? 'top-1' : (rank === 2 ? 'top-2' : (rank === 3 ? 'top-3' : 'other'));
+        const crown = rank === 1 ? '👑' : (rank === 2 ? '🥈' : (rank === 3 ? '🥉' : ''));
+        const inDock = selectedIds.includes(item.id);
+
+        return `
+          <div class="rank-row ${topClass}" id="row-${item.id}">
+            <!-- Rank Num -->
+            <div class="rank-num-box">
+              ${crown ? `<div class="rank-crown">${crown}</div>` : ''}
+              <div class="rank-num">${rank}</div>
+            </div>
+
+            <!-- Player & Title -->
+            <div class="player-col">
+              <div class="player-title-row">
+                <span class="player-nick">${escapeHtml(item.nickname)}</span>
+                <span class="tier-badge tier-${item.overall_tier || 'T2'}">${escapeHtml(item.overall_tier || 'T2')}</span>
+                ${item.fun_tag ? `<span class="fun-badge">${escapeHtml(item.fun_tag)}</span>` : ''}
+              </div>
+              <div class="player-sub">${escapeHtml(item.model || '台式电脑')} · ${escapeHtml(item.scan_time || '')}</div>
+            </div>
+
+            <!-- Hardware Specs -->
+            <div class="specs-col">
+              <div class="spec-line" title="${escapeHtml(item.cpu_name||'')}">
+                <span class="spec-icon">⚡</span> ${escapeHtml(item.cpu_name || '-')}
+              </div>
+              <div class="spec-line" title="${escapeHtml(item.gpu_name||'')}">
+                <span class="spec-icon">🎮</span> ${escapeHtml(item.gpu_name || '-')}
+              </div>
+              <div class="spec-line" title="${escapeHtml(item.ram_desc||'')}">
+                <span class="spec-icon">🧠</span> ${escapeHtml(item.ram_desc || '-')}
+              </div>
+            </div>
+
+            <!-- Score & Price -->
+            <div class="score-col">
+              <div class="score-val">${(item.total_score || 0).toLocaleString()} <span style="font-size:13px;font-weight:normal;">分</span></div>
+              <div class="price-sub">二手 ≈ <span class="price-used">¥${(item.total_used || 0).toLocaleString()}</span></div>
+              <div class="value-ratio-badge">质价比 ${item.value_ratio || 0}</div>
+            </div>
+
+            <!-- Actions Group -->
+            <div class="actions-col">
+              <button class="btn btn-ghost btn-sm" onclick="openDetailModal('${item.id}')">👁️ 详情</button>
+              <button class="btn ${inDock ? 'btn-green' : 'btn-primary'} btn-sm" onclick="toggleDock('${item.id}')">
+                ${inDock ? '✓ 已在PK' : '⚔️ 加入PK'}
+              </button>
+              <button class="btn btn-orange btn-sm" onclick="quickSoloPk('${item.id}')" title="快速挑选另一台与TA单挑">⚡ 对决</button>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
 
-    function renderFighterBox(item, other) {
-      if (!item) return '<div style="color:var(--sub)">暂无配置数据，请先上传</div>';
-      const winScore = other && item.total_score > other.total_score;
-      const winPrice = other && item.total_used > other.total_used;
-      return `
-        <div class="fighter-name">
-          <span>${item.nickname}</span>
-          <span class="pill tier-${item.overall_tier}">${item.overall_title}</span>
-          ${winScore ? '<span class="pill" style="background:#10b981">👑 战力领先</span>' : ''}
+    // ------------------------------------------------------------ Bottom Floating PK Dock (对战池管理)
+    function renderDock() {
+      const container = document.getElementById('dockSlots');
+      document.getElementById('dockCountHint').innerText = `已选 ${selectedIds.length}/4 台`;
+      document.getElementById('tabPkCount').innerText = selectedIds.length;
+
+      let slotsHtml = '';
+      for (let i = 0; i < 4; i++) {
+        const cid = selectedIds[i];
+        if (cid) {
+          const cfg = allConfigs.find(c => c.id === cid) || { nickname: '未知', gpu_name: '-', total_score: 0 };
+          slotsHtml += `
+            <div class="dock-slot filled">
+              <div class="slot-info">
+                <div class="slot-name">${escapeHtml(cfg.nickname)}</div>
+                <div class="slot-sub">${(cfg.total_score||0).toLocaleString()}分 · ${(cfg.gpu_name||'-').split('(')[0]}</div>
+              </div>
+              <div class="slot-del" onclick="removeFromDock('${cid}')" title="移除此主机">✕</div>
+            </div>
+          `;
+        } else {
+          slotsHtml += `
+            <div class="dock-slot empty" onclick="switchTab('rank')">
+              + 点击榜单加入
+            </div>
+          `;
+        }
+      }
+      container.innerHTML = slotsHtml;
+    }
+
+    function toggleDock(id) {
+      if (selectedIds.includes(id)) {
+        removeFromDock(id);
+      } else {
+        addToDock(id);
+      }
+    }
+
+    function addToDock(id) {
+      if (selectedIds.includes(id)) return;
+      if (selectedIds.length >= 4) {
+        showToast('PK 对战池最多支持 4 台主机大乱斗，请先移除一台');
+        return;
+      }
+      selectedIds.push(id);
+      renderDock();
+      renderRankList();
+      showToast('已加入对战池！可继续添加或点击右侧「⚔️ 开启 PK 对决」');
+    }
+
+    function removeFromDock(id) {
+      selectedIds = selectedIds.filter(x => x !== id);
+      renderDock();
+      renderRankList();
+      if (document.getElementById('viewPk').style.display === 'block') {
+        renderArena();
+      }
+    }
+
+    function clearDock() {
+      selectedIds = [];
+      renderDock();
+      renderRankList();
+      showToast('已清空对战池');
+    }
+
+    function quickSoloPk(id) {
+      // 快速与第一名或随机对手单挑
+      const other = allConfigs.find(c => c.id !== id);
+      if (!other) {
+        showToast('全服目前仅此一台配置，快找朋友上传另一台吧！');
+        return;
+      }
+      selectedIds = [id, other.id];
+      renderDock();
+      renderRankList();
+      switchTab('pk');
+    }
+
+    function triggerRandomPk() {
+      if (allConfigs.length < 2) {
+        showToast('全服配置少于 2 台，无法随机挑选！请先上传');
+        return;
+      }
+      // 随机挑选 2 ~ 3 台
+      const pickCount = Math.min(allConfigs.length >= 3 ? 3 : 2, allConfigs.length);
+      const shuffled = [...allConfigs].sort(() => 0.5 - Math.random());
+      selectedIds = shuffled.slice(0, pickCount).map(c => c.id);
+      renderDock();
+      renderRankList();
+      switchTab('pk');
+      showToast(`🎲 随机挑选了 ${pickCount} 位神仙对决！`);
+    }
+
+    function openPkArena() {
+      if (selectedIds.length < 2) {
+        if (allConfigs.length >= 2) {
+          triggerRandomPk();
+        } else {
+          showToast('请至少选择 2 台电脑配置再开启 PK！');
+        }
+        return;
+      }
+      switchTab('pk');
+    }
+
+    // ------------------------------------------------------------ View 2: Multi-PC Arena Rendering (多机大乱斗)
+    function renderArena() {
+      if (selectedIds.length < 2) {
+        if (allConfigs.length >= 2) {
+          selectedIds = [allConfigs[0].id, allConfigs[1].id];
+          renderDock();
+          renderRankList();
+        } else {
+          document.getElementById('matrixGrid').innerHTML = `
+            <div style="text-align:center;padding:60px 20px;color:var(--sub);background:var(--card);border-radius:14px;">
+              请在排行榜中选择至少 2 台主机加入 PK 对战池！
+            </div>
+          `;
+          return;
+        }
+      }
+
+      const fighters = selectedIds.map(id => allConfigs.find(c => c.id === id)).filter(Boolean);
+      const N = fighters.length;
+
+      // 1. 单项王者判定 (Podiums)
+      const bestScore = [...fighters].sort((a,b) => (b.total_score||0) - (a.total_score||0))[0];
+      const bestRatio = [...fighters].sort((a,b) => (b.value_ratio||0) - (a.value_ratio||0))[0];
+      const bestCpu = [...fighters].sort((a,b) => (b.cpu_score||0) - (a.cpu_score||0))[0];
+      const bestGpu = [...fighters].sort((a,b) => (b.gpu_score||0) - (a.gpu_score||0))[0];
+
+      document.getElementById('podiumGrid').innerHTML = `
+        <div class="podium-card">
+          <div class="podium-icon">👑</div>
+          <div class="podium-info">
+            <div class="podium-label">综合战力总冠军</div>
+            <div class="podium-winner">${escapeHtml(bestScore.nickname)}</div>
+            <div class="podium-val">${(bestScore.total_score||0).toLocaleString()} 分 (${bestScore.overall_tier||'T0'})</div>
+          </div>
         </div>
-        <div class="fighter-sub">${item.model} · 击败全国 ${item.beat_pct}% 电脑 · 扫描于 ${item.scan_time}</div>
-        <div class="stat-grid">
-          <div class="stat-cell">
-            <div class="stat-label">综合天梯跑分</div>
-            <div class="stat-val" style="color:#34d399">${fmtNum(item.total_score)} 分</div>
+        <div class="podium-card">
+          <div class="podium-icon">💰</div>
+          <div class="podium-info">
+            <div class="podium-label">质价比之王 (捡漏神机)</div>
+            <div class="podium-winner">${escapeHtml(bestRatio.nickname)}</div>
+            <div class="podium-val">指数 ${bestRatio.value_ratio} (二手¥${bestRatio.total_used})</div>
           </div>
-          <div class="stat-cell">
-            <div class="stat-label">二手市场残值 ${winPrice ? '🔥' : ''}</div>
-            <div class="stat-val" style="color:var(--gold)">¥ ${fmtNum(item.total_used)}</div>
+        </div>
+        <div class="podium-card">
+          <div class="podium-icon">⚡</div>
+          <div class="podium-info">
+            <div class="podium-label">最强 CPU 算力神脑</div>
+            <div class="podium-winner">${escapeHtml(bestCpu.nickname)}</div>
+            <div class="podium-val">${(bestCpu.cpu_name||'-').split('(')[0]}</div>
           </div>
-          <div class="stat-cell">
-            <div class="stat-label">全新装机参考</div>
-            <div class="stat-val" style="color:#93c5fd">¥ ${fmtNum(item.total_new)}</div>
+        </div>
+        <div class="podium-card">
+          <div class="podium-icon">🎮</div>
+          <div class="podium-info">
+            <div class="podium-label">最强图形渲染卡皇</div>
+            <div class="podium-winner">${escapeHtml(bestGpu.nickname)}</div>
+            <div class="podium-val">${(bestGpu.gpu_name||'-').split('(')[0]}</div>
           </div>
         </div>
       `;
-    }
 
-    function renderPK() {
-      const a = ITEMS.find(x => x.id === idA);
-      const b = ITEMS.find(x => x.id === idB);
-      document.getElementById('boxA').innerHTML = renderFighterBox(a, b);
-      document.getElementById('boxB').innerHTML = renderFighterBox(b, a);
-      if (!a || !b) return;
+      // 2. 趣味战报评语生成
+      let commentary = '';
+      if (N === 2) {
+        const A = fighters[0], B = fighters[1];
+        if (A.total_score > B.total_score) {
+          commentary = `【${A.nickname}】以 ${(A.total_score - B.total_score).toLocaleString()} 分的综合战力优势领跑，其显卡与核心总成呈现显著压制；而【${B.nickname}】在质价比维度表现坚挺，二手残值仅 ¥${B.total_used.toLocaleString()}，堪称刀锋战神！`;
+        } else if (A.total_score < B.total_score) {
+          commentary = `【${B.nickname}】展现出强大的硬件统治力，高出对手 ${(B.total_score - A.total_score).toLocaleString()} 分，无论图形渲染还是重载运算均占得先机！【${A.nickname}】则在 ${A.fun_tag || '实用性'} 领域守住尊严。`;
+        } else {
+          commentary = `双方战力平分秋色！在综合得分上旗鼓相当，针尖对麦芒，胜负只在分毫之间！`;
+        }
+      } else {
+        commentary = `当前 ${N} 台主机同屏大乱斗！【${bestScore.nickname}】以 ${(bestScore.total_score||0).toLocaleString()} 分夺得战力榜首，但【${bestRatio.nickname}】凭借质价比指数 ${bestRatio.value_ratio} 斩获性价比桂冠！各台主机在显卡与 CPU 架构上互有胜负！`;
+      }
+      document.getElementById('commentaryText').innerText = commentary;
 
-      const diffUsed = Math.abs(a.total_used - b.total_used);
-      const diffScore = Math.abs(a.total_score - b.total_score);
-      document.getElementById('pkDiffText').innerHTML = `战力差 ${fmtNum(diffScore)}<br/>二手差 ¥${fmtNum(diffUsed)}`;
+      // 3. 多机硬件横向对照卡片 (Matrix Grid)
+      const matrixContainer = document.getElementById('matrixGrid');
+      matrixContainer.className = `matrix-grid matrix-col-${Math.min(Math.max(N, 2), 4)}`;
 
-      const ma = (a.report && a.report.metrics) || {};
-      const mb = (b.report && b.report.metrics) || {};
-      const metricDefs = [
-        ['cpu_score', 'CPU 天梯性能分', '分', a.cpu_score || ma.cpu_score || 0, b.cpu_score || mb.cpu_score || 0],
-        ['gpu_score', '显卡天梯性能分', '分', a.gpu_score || ma.gpu_score || 0, b.gpu_score || mb.gpu_score || 0],
-        ['used_price', '整机二手残值', '元', a.total_used || 0, b.total_used || 0],
-        ['new_price', '整机全新参考价', '元', a.total_new || 0, b.total_new || 0],
-        ['cpu_cores', 'CPU 核心数', '核', ma.cpu_cores || 0, mb.cpu_cores || 0],
-        ['cpu_threads', 'CPU 线程数', '线程', ma.cpu_threads || 0, mb.cpu_threads || 0],
-        ['ram_gb', '内存容量', 'GB', ma.ram_gb || 0, mb.ram_gb || 0],
-        ['ram_speed', '内存频率', 'MHz', ma.ram_speed || 0, mb.ram_speed || 0],
-        ['vram_gb', '显存容量', 'GB', ma.vram_gb || 0, mb.vram_gb || 0],
-        ['disk_gb', '硬盘总容量', 'GB', ma.disk_gb || 0, mb.disk_gb || 0],
+      matrixContainer.innerHTML = fighters.map((f, idx) => {
+        const colorClass = COLOR_CLASSES[idx % 4];
+        const isChamp = (f.id === bestScore.id);
+        const rep = f.report || {};
+        const items = rep.items || [];
+        const getPart = (key) => items.find(it => it.key === key) || {};
+
+        const cpu = getPart('cpu');
+        const gpu = getPart('gpu');
+        const board = getPart('board');
+        const ram = getPart('mem') || getPart('ram');
+        const disk = getPart('disk');
+        const monitor = getPart('monitor');
+
+        const cpuRow = (cpu.rows && cpu.rows[0]) || {};
+        const gpuRow = (gpu.rows && gpu.rows[0]) || {};
+        const boardRow = (board.rows && board.rows[0]) || {};
+        const ramRow = (ram.rows && ram.rows[0]) || {};
+        const diskRow = (disk.rows && disk.rows[0]) || {};
+        const monitorRow = (monitor.rows && monitor.rows[0]) || {};
+
+        return `
+          <div class="fighter-card ${colorClass}">
+            <div class="fighter-top">
+              <div class="fighter-name-box">
+                <h3>
+                  ${escapeHtml(f.nickname)}
+                  ${isChamp ? '👑' : ''}
+                </h3>
+                <p>${escapeHtml(f.overall_title || f.overall_tier || 'T2')} · ${escapeHtml(f.fun_tag || '')}</p>
+              </div>
+              <div class="fighter-score-box">
+                <div class="fighter-score-num">${(f.total_score||0).toLocaleString()}</div>
+                <div style="font-size:11px;color:var(--sub);">综合战力得分</div>
+              </div>
+            </div>
+
+            <!-- Mini Stats Bar -->
+            <div class="fighter-stats-bar">
+              <div class="stat-mini-box">
+                <div class="stat-mini-label">二手残值</div>
+                <div class="stat-mini-val" style="color:var(--orange);">¥${(f.total_used||0).toLocaleString()}</div>
+              </div>
+              <div class="stat-mini-box">
+                <div class="stat-mini-label">全新参考</div>
+                <div class="stat-mini-val" style="color:var(--green);">¥${(f.total_new||0).toLocaleString()}</div>
+              </div>
+              <div class="stat-mini-box">
+                <div class="stat-mini-label">质价比</div>
+                <div class="stat-mini-val" style="color:var(--cyan);">${f.value_ratio||0}</div>
+              </div>
+            </div>
+
+            <!-- Hardware Parts List -->
+            <div class="fighter-parts-list">
+              <div class="part-box">
+                <div class="part-head">
+                  <span class="part-type">⚡ 处理器 CPU</span>
+                  <span class="part-price-badge">二手 ≈ ¥${cpuRow._eval ? cpuRow._eval.used : '-'}</span>
+                </div>
+                <div class="part-main-title">${escapeHtml(cpuRow.t || f.cpu_name || '-')}</div>
+                <div class="part-sub-info">${escapeHtml(cpuRow.s || '')}</div>
+              </div>
+
+              <div class="part-box">
+                <div class="part-head">
+                  <span class="part-type">🎮 显卡 GPU</span>
+                  <span class="part-price-badge">二手 ≈ ¥${gpuRow._eval ? gpuRow._eval.used : '-'}</span>
+                </div>
+                <div class="part-main-title">${escapeHtml(gpuRow.t || f.gpu_name || '-')}</div>
+                <div class="part-sub-info">${escapeHtml(gpuRow.s || '')}</div>
+              </div>
+
+              <div class="part-box">
+                <div class="part-head">
+                  <span class="part-type">🧠 内存 RAM</span>
+                  <span class="part-price-badge">二手 ≈ ¥${ramRow._eval ? ramRow._eval.used : '-'}</span>
+                </div>
+                <div class="part-main-title">${escapeHtml(ram.summary || ramRow.t || f.ram_desc || '-')}</div>
+                <div class="part-sub-info">${escapeHtml(ramRow.s || '')}</div>
+              </div>
+
+              <div class="part-box">
+                <div class="part-head">
+                  <span class="part-type">💾 主硬盘 SSD</span>
+                  <span class="part-price-badge">二手 ≈ ¥${diskRow._eval ? diskRow._eval.used : '-'}</span>
+                </div>
+                <div class="part-main-title">${escapeHtml(diskRow.t || '-')}</div>
+                <div class="part-sub-info">${escapeHtml(diskRow.s || '')}</div>
+              </div>
+
+              <div class="part-box">
+                <div class="part-head">
+                  <span class="part-type">🖥️ 主显示器</span>
+                  <span class="part-price-badge">二手 ≈ ¥${monitorRow._eval ? monitorRow._eval.used : '-'}</span>
+                </div>
+                <div class="part-main-title">${escapeHtml(monitorRow.t || '-')}</div>
+                <div class="part-sub-info">${escapeHtml(monitorRow.s || '')}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // 4. 对比条列表 (10 项指标对比)
+      const metricsConfig = [
+        { label: '综合战力分', key: 'total_score', unit: '分', fmt: n => n.toLocaleString() },
+        { label: 'CPU 性能分', key: 'cpu_score', unit: '分', fmt: n => n.toLocaleString() },
+        { label: 'GPU 显卡分', key: 'gpu_score', unit: '分', fmt: n => n.toLocaleString() },
+        { label: '二手市场残值', key: 'total_used', unit: '元', fmt: n => '¥' + n.toLocaleString() },
+        { label: '全新硬件总价', key: 'total_new', unit: '元', fmt: n => '¥' + n.toLocaleString() },
+        { label: '质价比指数', key: 'value_ratio', unit: '', fmt: n => n },
+        { label: 'CPU 核心数', getter: f => (f.report && f.report.metrics && f.report.metrics.cpu_cores) || 8, unit: '核', fmt: n => n + ' 核' },
+        { label: '显卡显存容量', getter: f => (f.report && f.report.metrics && f.report.metrics.gpu_vram_gb) || 8, unit: 'GB', fmt: n => n + ' GB' },
+        { label: '内存总容量', getter: f => (f.report && f.report.metrics && f.report.metrics.ram_gb) || 16, unit: 'GB', fmt: n => n + ' GB' },
+        { label: '屏幕刷新率', getter: f => (f.report && f.report.metrics && f.report.metrics.monitor_hz) || 60, unit: 'Hz', fmt: n => n + ' Hz' }
       ];
 
-      const fmtM = (k, v, u) => {
-        if (!v) return '-';
-        if (k === 'used_price' || k === 'new_price') return '¥ ' + fmtNum(v);
-        if (k === 'disk_gb' && v >= 990) return (v / 1000).toFixed(2).replace(/\.?0+$/, '') + ' TB';
-        return fmtNum(v) + ' ' + u;
-      };
+      document.getElementById('metricsBarsList').innerHTML = metricsConfig.map(m => {
+        const vals = fighters.map(f => {
+          if (m.getter) return m.getter(f);
+          return f[m.key] || 0;
+        });
+        const maxVal = Math.max(...vals, 1);
 
-      document.getElementById('metricsArena').innerHTML = metricDefs
-        .filter(m => m[3] > 0 || m[4] > 0)
-        .map(([k, label, u, va, vb]) => {
-          const mx = Math.max(va, vb, 1);
-          const wa = Math.max(4, Math.round((va / mx) * 100));
-          const wb = Math.max(4, Math.round((vb / mx) * 100));
-          const tag = (k === 'used_price' || k === 'new_price') ? '更贵' : '更高';
+        const barsHtml = fighters.map((f, idx) => {
+          const val = vals[idx];
+          const pct = Math.max(8, Math.round((val / maxVal) * 100));
+          const color = THEME_COLORS[idx % 4];
+          const isWinner = (val === maxVal && val > 0);
+
           return `
-            <div class="metric-row">
-              <div class="metric-title">${label}</div>
-              <div class="bars-wrap">
-                <div class="bar-line">
-                  <div class="bar-track"><div class="bar-fill fill-a" style="width:${va ? wa : 0}%"></div></div>
-                  <div class="bar-val">
-                    <span>${fmtM(k, va, u)}</span>
-                    ${va > vb ? `<span class="win-badge">${tag}</span>` : ''}
-                  </div>
-                </div>
-                <div class="bar-line">
-                  <div class="bar-track"><div class="bar-fill fill-b" style="width:${vb ? wb : 0}%"></div></div>
-                  <div class="bar-val">
-                    <span>${fmtM(k, vb, u)}</span>
-                    ${vb > va ? `<span class="win-badge">${tag}</span>` : ''}
-                  </div>
-                </div>
+            <div class="m-bar-item">
+              <span class="m-bar-label" style="color:${color};">${escapeHtml(f.nickname)}</span>
+              <div class="m-bar-track">
+                <div class="m-bar-fill" style="width:${pct}%;background:${color};"></div>
+              </div>
+              <span class="m-bar-val" style="color:${isWinner ? 'var(--gold)' : 'white'};">
+                ${m.fmt(val)} ${isWinner ? '👑' : ''}
+              </span>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="metric-row">
+            <div class="metric-name">${m.label}</div>
+            <div class="metric-bars-box">${barsHtml}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ------------------------------------------------------------ Detail Modal (特工档案)
+    function openDetailModal(id) {
+      const cfg = allConfigs.find(c => c.id === id);
+      if (!cfg) return;
+      currentDetailConfig = cfg;
+
+      const rep = cfg.report || {};
+      const val = rep.valuation || {};
+      const items = rep.items || [];
+      const dist = val.distribution || {};
+
+      let partsHtml = items.map(it => {
+        const rows = it.rows || [];
+        const rowsHtml = rows.map(r => {
+          const ev = r._eval || {};
+          return `
+            <div style="background:rgba(255,255,255,0.03);padding:10px 14px;border-radius:10px;margin-top:6px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+              <div style="overflow:hidden;">
+                <div style="font-size:13.5px;font-weight:700;color:white;">${escapeHtml(r.t || '-')}</div>
+                <div style="font-size:11.5px;color:var(--sub);margin-top:2px;">${escapeHtml(r.s || '')}</div>
+                ${ev.reason ? `<div style="font-size:11px;color:var(--cyan);margin-top:3px;">💬 ${escapeHtml(ev.reason)}</div>` : ''}
+              </div>
+              <div style="text-align:right;flex-shrink:0;">
+                <div style="font-size:13px;font-weight:800;color:var(--orange);">二手 ≈ ¥${(ev.used||0).toLocaleString()}</div>
+                <div style="font-size:11.5px;color:var(--green);">全新 ≈ ¥${(ev.new||0).toLocaleString()}</div>
+                <div style="font-size:10px;color:#64748b;">${escapeHtml(ev.source || '内置估算')}</div>
               </div>
             </div>
           `;
         }).join('');
 
-      // Detailed item comparison
-      const iaMap = {};
-      const ibMap = {};
-      const keys = [];
-      ((a.report && a.report.items) || []).forEach(i => { iaMap[i.key] = i; if (!keys.includes(i.key)) keys.push(i.key); });
-      ((b.report && b.report.items) || []).forEach(i => { ibMap[i.key] = i; if (!keys.includes(i.key)) keys.push(i.key); });
-
-      let diffs = 0;
-      const rowsHtml = keys.map(k => {
-        const ia = iaMap[k];
-        const ib = ibMap[k];
-        const label = (ia || ib).label;
-        const ra = (ia && ia.rows) || [];
-        const rb = (ib && ib.rows) || [];
-        const norm = s => (s || '').toLowerCase().replace(/\s+/g, '');
-        const same = JSON.stringify(ra.map(r => norm(r.t))) === JSON.stringify(rb.map(r => norm(r.t)));
-        if (!same) diffs++;
-
-        const renderCell = rows => {
-          if (!rows.length) return '<div class="hw-t" style="color:var(--sub)">—</div>';
-          return rows.map(r => {
-            const ev = r._eval || {};
-            const pStr = ev.used > 0
-              ? `💰 二手 ≈ ¥${fmtNum(ev.used)}  |  全新 ≈ ¥${fmtNum(ev.new)}${ev.reason ? ' · ' + ev.reason : ''}`
-              : (ev.note || '');
-            return `
-              <div class="hw-item">
-                <div class="hw-t">${r.t}</div>
-                ${r.d ? `<div class="hw-d">${r.d}</div>` : ''}
-                ${pStr ? `<div class="hw-p">${pStr}</div>` : ''}
-              </div>
-            `;
-          }).join('');
-        };
-
         return `
-          <div class="comp-row ${same ? '' : 'diff'}">
-            <div class="comp-cat">
-              <span>${label}</span>
-              <span class="pill" style="background:${same ? '#10b981' : '#f59e0b'}">${same ? '相同' : '不同'}</span>
-            </div>
-            <div>${renderCell(ra)}</div>
-            <div>${renderCell(rb)}</div>
+          <div style="margin-top:14px;">
+            <div style="font-size:13px;font-weight:800;color:var(--cyan);">${escapeHtml(it.label || it.key)}</div>
+            ${rowsHtml}
           </div>
         `;
       }).join('');
 
-      document.getElementById('diffSummary').textContent = `共对比 ${keys.length} 类硬件，其中 ${diffs} 类不同`;
-      document.getElementById('detailsArena').innerHTML = rowsHtml;
+      document.getElementById('detailBody').innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <h2 style="font-size:24px;font-weight:900;color:white;">${escapeHtml(cfg.nickname)}</h2>
+          <span class="tier-badge tier-${cfg.overall_tier||'T2'}">${escapeHtml(cfg.overall_tier||'T2')}</span>
+          ${cfg.fun_tag ? `<span class="fun-badge">${escapeHtml(cfg.fun_tag)}</span>` : ''}
+        </div>
+        <p style="font-size:12.5px;color:var(--sub);margin-top:4px;">
+          ${escapeHtml(cfg.model||'台式电脑')} · 扫描时间: ${escapeHtml(cfg.scan_time||'')} · 段位: ${escapeHtml(cfg.overall_title||'')}
+        </p>
+
+        <!-- Fun Tag Description -->
+        ${cfg.fun_desc ? `
+          <div style="background:rgba(236,72,153,0.1);border-left:4px solid var(--pink);padding:8px 12px;border-radius:6px;font-size:12.5px;color:#fbcfe8;margin-top:10px;">
+            <strong>装机人设画像:</strong> ${escapeHtml(cfg.fun_desc)}
+          </div>
+        ` : ''}
+
+        <!-- 3 Big Metric Numbers -->
+        <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:10px;margin-top:14px;">
+          <div style="background:rgba(255,255,255,0.04);padding:12px;border-radius:10px;text-align:center;">
+            <div style="font-size:11.5px;color:var(--sub);">综合总战力</div>
+            <div style="font-size:22px;font-weight:900;color:var(--cyan);">${(cfg.total_score||0).toLocaleString()}</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.04);padding:12px;border-radius:10px;text-align:center;">
+            <div style="font-size:11.5px;color:var(--sub);">整机二手残值</div>
+            <div style="font-size:22px;font-weight:900;color:var(--orange);">¥${(cfg.total_used||0).toLocaleString()}</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.04);padding:12px;border-radius:10px;text-align:center;">
+            <div style="font-size:11.5px;color:var(--sub);">全新参考总价</div>
+            <div style="font-size:22px;font-weight:900;color:var(--green);">¥${(cfg.total_new||0).toLocaleString()}</div>
+          </div>
+        </div>
+
+        <!-- Hardware Items -->
+        <div style="margin-top:18px;">
+          <h4 style="font-size:15px;font-weight:800;color:white;border-bottom:1px solid var(--card-border);padding-bottom:6px;">
+            🛠️ 完整硬件配置清单与市场估值
+          </h4>
+          ${partsHtml}
+        </div>
+
+        <!-- Detail Actions -->
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:22px;flex-wrap:wrap;">
+          <button class="btn btn-green" onclick="generateDetailPoster()">📸 生成配置长图 (复制/保存)</button>
+          <button class="btn btn-primary" onclick="copyDetailShareLink('${cfg.id}')">🔗 复制配置链接</button>
+          <button class="btn btn-orange" onclick="addToDock('${cfg.id}');closeDetailModal();switchTab('pk');">⚔️ 携此机去 PK</button>
+        </div>
+      `;
+
+      document.getElementById('detailModal').classList.add('open');
     }
 
-    function sortRank(mode) {
-      rankSortMode = mode;
-      renderRankList();
+    function closeDetailModal() {
+      document.getElementById('detailModal').classList.remove('open');
     }
 
-    function renderRankList() {
-      const sorted = [...ITEMS].sort((a, b) => {
-        if (rankSortMode === 'used') return b.total_used - a.total_used;
-        if (rankSortMode === 'new') return b.total_new - a.total_new;
-        if (rankSortMode === 'time') return (b.updated_at || '').localeCompare(a.updated_at || '');
-        return b.total_score - a.total_score;
-      });
+    // ------------------------------------------------------------ Long Poster Generator (一键长图海报)
+    async function generateDetailPoster() {
+      if (!currentDetailConfig) return;
+      showToast('正在渲染配置长图，请稍候…');
+      const cfg = currentDetailConfig;
+      const rep = cfg.report || {};
+      const val = rep.valuation || {};
+      const items = rep.items || [];
 
-      document.getElementById('rankList').innerHTML = sorted.map((it, i) => {
-        const rkClass = i === 0 ? 'rank-1' : (i === 1 ? 'rank-2' : (i === 2 ? 'rank-3' : ''));
-        return `
-          <div class="rank-card">
-            <div class="rank-num ${rkClass}">#${i + 1}</div>
-            <div>
-              <div style="font-size:17px;font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                <span>${it.nickname}</span>
-                <span class="pill tier-${it.overall_tier}">${it.overall_title}</span>
+      let itemsHtml = items.map(it => {
+        const rows = it.rows || [];
+        return rows.map(r => {
+          const ev = r._eval || {};
+          return `
+            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08);">
+              <div>
+                <div style="font-size:14px;font-weight:bold;color:#ffffff;">${escapeHtml(r.t || '-')}</div>
+                <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${escapeHtml(it.label || it.key)} · ${escapeHtml(r.s || '')}</div>
               </div>
-              <div style="font-size:12px;color:var(--sub);margin-top:3px">${it.model} · 上传于 ${it.updated_at || it.scan_time}</div>
+              <div style="text-align:right;white-space:nowrap;margin-left:14px;">
+                <div style="font-size:13px;font-weight:bold;color:#f97316;">二手 ¥${(ev.used||0).toLocaleString()}</div>
+                <div style="font-size:11px;color:#10b981;">全新 ¥${(ev.new||0).toLocaleString()}</div>
+              </div>
             </div>
-            <div class="hw-brief">
-              <div><strong>CPU:</strong> ${it.cpu_name}</div>
-              <div><strong>显卡:</strong> ${it.gpu_name}</div>
-              <div><strong>内存:</strong> ${it.ram_desc}</div>
-            </div>
+          `;
+        }).join('');
+      }).join('');
+
+      const sandbox = document.getElementById('posterSandbox');
+      sandbox.innerHTML = `
+        <div id="renderTarget" style="width:720px;padding:32px;background:#0b0f19;font-family:'Microsoft YaHei UI',sans-serif;color:#f1f5f9;box-sizing:border-box;">
+          <!-- Poster Top Header -->
+          <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #00f0ff;padding-bottom:16px;">
             <div>
-              <div style="font-size:15px;font-weight:800;color:#34d399">战力 ${fmtNum(it.total_score)} 分</div>
-              <div style="font-size:13px;font-weight:700;color:var(--gold)">二手 ≈ ¥${fmtNum(it.total_used)}</div>
-              <div style="font-size:12px;color:var(--sub)">全新 ≈ ¥${fmtNum(it.total_new)}</div>
+              <div style="font-size:11px;font-weight:bold;letter-spacing:2px;color:#00f0ff;">HARDWARESHOT · 硬件配置助手</div>
+              <div style="font-size:26px;font-weight:900;color:#ffffff;margin-top:4px;">${escapeHtml(cfg.nickname)}</div>
+              <div style="font-size:12px;color:#94a3b8;margin-top:2px;">${escapeHtml(cfg.model||'台式电脑')} · ${escapeHtml(cfg.overall_title||'')}</div>
             </div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap">
-              <button class="btn btn-primary" style="padding:6px 12px;font-size:12px" onclick="pickForPK('${it.id}', 'A')">设为蓝方</button>
-              <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px;border-color:#f97316;color:#fb923c" onclick="pickForPK('${it.id}', 'B')">设为红方</button>
+            <div style="text-align:right;">
+              <div style="font-size:12px;color:#94a3b8;">综合总战力</div>
+              <div style="font-size:32px;font-weight:900;color:#00f0ff;line-height:1;">${(cfg.total_score||0).toLocaleString()}</div>
             </div>
           </div>
-        `;
-      }).join('');
-    }
 
-    function pickForPK(cid, side) {
-      if (side === 'A') idA = cid;
-      else idB = cid;
-      document.getElementById('selA').value = idA;
-      document.getElementById('selB').value = idB;
-      onSelectChange();
-      switchTab('pk');
-      showToast(`已切换${side === 'A' ? '蓝方' : '红方'}配置，开始 PK！`);
-    }
+          <!-- Price & Highlights -->
+          <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;margin:20px 0;background:#131b2e;padding:16px;border-radius:12px;border:1px solid #243252;">
+            <div style="text-align:center;">
+              <div style="font-size:11px;color:#94a3b8;">二手市场残值</div>
+              <div style="font-size:20px;font-weight:900;color:#f97316;margin-top:2px;">¥${(cfg.total_used||0).toLocaleString()}</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:11px;color:#94a3b8;">全新参考总价</div>
+              <div style="font-size:20px;font-weight:900;color:#10b981;margin-top:2px;">¥${(cfg.total_new||0).toLocaleString()}</div>
+            </div>
+            <div style="text-align:center;">
+              <div style="font-size:11px;color:#94a3b8;">装机人设称号</div>
+              <div style="font-size:16px;font-weight:900;color:#f472b6;margin-top:4px;">${escapeHtml(cfg.fun_tag||'实力战将')}</div>
+            </div>
+          </div>
 
-    function copyShareLink() {
-      const url = `${window.location.origin}/?pk=${idA || ''},${idB || ''}`;
-      navigator.clipboard.writeText(url).then(() => {
-        showToast('✔ 专属双机 PK 链接已复制到剪贴板，快发给好友吧！');
-      });
-    }
+          <!-- Hardware List -->
+          <div style="background:#131b2e;padding:18px;border-radius:12px;border:1px solid #243252;">
+            <div style="font-size:13px;font-weight:bold;color:#00f0ff;margin-bottom:8px;">🛠️ 硬件明细与双轨市场估值</div>
+            ${itemsHtml}
+          </div>
 
-    document.getElementById('fileInput').addEventListener('change', async (ev) => {
-      const f = ev.target.files[0];
-      if (!f) return;
+          <!-- Poster Footer -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;font-size:11px;color:#64748b;">
+            <div>扫描时间: ${escapeHtml(cfg.scan_time||'')} · 生成于 HardwareShot 云端天梯榜</div>
+            <div>https://pc.alonglfb.com/?id=${cfg.id}</div>
+          </div>
+        </div>
+      `;
+
       try {
-        const text = await f.text();
+        const el = document.getElementById('renderTarget');
+        const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#0b0f19' });
+        canvas.toBlob(blob => {
+          generatedBlob = blob;
+          generatedFileName = `硬件配置_${cfg.nickname}.png`;
+          const url = URL.createObjectURL(blob);
+          document.getElementById('posterPreviewImg').src = url;
+          document.getElementById('posterModal').classList.add('open');
+        });
+      } catch (err) {
+        showToast('长图渲染失败: ' + err.message);
+      }
+    }
+
+    async function generatePkPoster() {
+      const fighters = selectedIds.map(id => allConfigs.find(c => c.id === id)).filter(Boolean);
+      if (fighters.length < 2) return;
+      showToast('正在渲染 PK 战报长图，请稍候…');
+
+      const fightersHtml = fighters.map((f, idx) => {
+        const color = THEME_COLORS[idx % 4];
+        return `
+          <div style="flex:1;background:#131b2e;border:1.5px solid ${color};border-radius:12px;padding:16px;box-sizing:border-box;">
+            <div style="font-size:18px;font-weight:900;color:${color};">${escapeHtml(f.nickname)}</div>
+            <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${escapeHtml(f.overall_title||'')} · ${escapeHtml(f.fun_tag||'')}</div>
+            <div style="font-size:24px;font-weight:900;color:#ffffff;margin:10px 0 6px;">${(f.total_score||0).toLocaleString()} <span style="font-size:12px;color:#94a3b8;">分</span></div>
+            <div style="font-size:12px;color:#cbd5e1;">二手: <span style="color:#f97316;font-weight:bold;">¥${(f.total_used||0).toLocaleString()}</span></div>
+            <div style="font-size:12px;color:#cbd5e1;">全新: <span style="color:#10b981;font-weight:bold;">¥${(f.total_new||0).toLocaleString()}</span></div>
+            <div style="margin-top:12px;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;font-size:12px;color:#cbd5e1;line-height:1.6;">
+              <div>⚡ ${escapeHtml((f.cpu_name||'-').split('(')[0])}</div>
+              <div>🎮 ${escapeHtml((f.gpu_name||'-').split('(')[0])}</div>
+              <div>🧠 ${escapeHtml(f.ram_desc||'-')}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const sandbox = document.getElementById('posterSandbox');
+      sandbox.innerHTML = `
+        <div id="renderTargetPk" style="width:760px;padding:32px;background:#0b0f19;font-family:'Microsoft YaHei UI',sans-serif;color:#f1f5f9;box-sizing:border-box;">
+          <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #00f0ff;padding-bottom:16px;margin-bottom:20px;">
+            <div>
+              <div style="font-size:11px;font-weight:bold;letter-spacing:2px;color:#00f0ff;">HARDWARESHOT CLOUD ARENA</div>
+              <div style="font-size:24px;font-weight:900;color:#ffffff;margin-top:4px;">⚔️ 硬件配置多机对决战报</div>
+            </div>
+            <div style="font-size:12px;color:#94a3b8;text-align:right;">
+              <div>全服风云对决</div>
+              <div>https://pc.alonglfb.com</div>
+            </div>
+          </div>
+
+          <!-- Fighters Columns -->
+          <div style="display:flex;gap:14px;margin-bottom:20px;">
+            ${fightersHtml}
+          </div>
+
+          <!-- Bottom Footer -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;font-size:11px;color:#64748b;border-top:1px solid rgba(255,255,255,0.08);padding-top:12px;">
+            <div>扫码或访问网址即可直接加载当前对战双方进行复盘</div>
+            <div>对决专属链接: https://pc.alonglfb.com/?pk=${fighters.map(f=>f.id).join(',')}</div>
+          </div>
+        </div>
+      `;
+
+      try {
+        const el = document.getElementById('renderTargetPk');
+        const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#0b0f19' });
+        canvas.toBlob(blob => {
+          generatedBlob = blob;
+          generatedFileName = `硬件PK战报_${fighters.map(f=>f.nickname).join('_VS_')}.png`;
+          const url = URL.createObjectURL(blob);
+          document.getElementById('posterPreviewImg').src = url;
+          document.getElementById('posterModal').classList.add('open');
+        });
+      } catch (err) {
+        showToast('战报长图渲染失败: ' + err.message);
+      }
+    }
+
+    async function copyPosterToClipboard() {
+      if (!generatedBlob) return;
+      try {
+        const item = new ClipboardItem({ 'image/png': generatedBlob });
+        await navigator.clipboard.write([item]);
+        showToast('✔ 图片已成功复制到剪贴板！可直接在微信/QQ等聊天窗口粘贴 (Ctrl + V) 发送');
+      } catch (err) {
+        showToast('浏览器限制自动写入图片，已为您开启下载！');
+        downloadPosterImage();
+      }
+    }
+
+    function downloadPosterImage() {
+      if (!generatedBlob) return;
+      const url = URL.createObjectURL(generatedBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = generatedFileName;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('✔ 高清图片下载已启动！');
+    }
+
+    function closePosterModal() {
+      document.getElementById('posterModal').classList.remove('open');
+    }
+
+    // ------------------------------------------------------------ URL Linking & Sharing
+    function copyDetailShareLink(id) {
+      const url = `${location.origin}/?id=${id}`;
+      navigator.clipboard.writeText(url).then(() => {
+        showToast('配置专属链接已复制到剪贴板: ' + url);
+      }).catch(() => {
+        prompt('请手动复制链接:', url);
+      });
+    }
+
+    function copyPkShareLink() {
+      const ids = selectedIds.join(',');
+      const url = `${location.origin}/?pk=${ids}`;
+      navigator.clipboard.writeText(url).then(() => {
+        showToast('PK 对决专属链接已复制到剪贴板: ' + url);
+      }).catch(() => {
+        prompt('请手动复制链接:', url);
+      });
+    }
+
+    function handleUrlParams() {
+      const params = new URLSearchParams(location.search);
+      const pkParam = params.get('pk');
+      const idParam = params.get('id');
+
+      if (pkParam) {
+        const ids = pkParam.split(',').map(s => s.trim()).filter(Boolean);
+        const valid = ids.filter(id => allConfigs.some(c => c.id === id));
+        if (valid.length >= 2) {
+          selectedIds = valid.slice(0, 4);
+          renderDock();
+          switchTab('pk');
+          return;
+        }
+      }
+
+      if (idParam) {
+        const target = allConfigs.find(c => c.id === idParam);
+        if (target) {
+          openDetailModal(target.id);
+        }
+      }
+    }
+
+    // ------------------------------------------------------------ Upload .json from Web
+    document.getElementById('fileInput').addEventListener('change', async function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      showToast('正在解析并上传配置文件…');
+
+      try {
+        const text = await file.text();
         const json = JSON.parse(text);
         const res = await fetch('/api/upload', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(json),
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: JSON.stringify(json)
         });
-        const data = await res.json();
-        if (!data.ok) throw new Error(data.error || '上传失败');
-        showToast(`🎉 上传成功！「${data.summary.nickname}」当前位列全服第 #${data.rank} 名`);
-        idA = data.id;
-        await loadConfigs();
-        switchTab('pk');
+        const resp = await res.json();
+        if (resp.ok) {
+          showToast(`上传成功！名列全服第 ${resp.rank}/${resp.total} 名！`);
+          await loadData();
+          openDetailModal(resp.id);
+        } else {
+          showToast('上传失败: ' + (resp.error || '未知错误'));
+        }
       } catch (err) {
-        alert('配置文件上传失败: ' + err.message);
-      } finally {
-        ev.target.value = '';
+        showToast('解析文件失败，请确保上传由「硬件配置助手」导出的 .json 配置文件');
       }
+      e.target.value = '';
     });
 
-    loadConfigs();
+    // ------------------------------------------------------------ Helpers
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.innerText = msg;
+      t.style.display = 'block';
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(() => { t.style.display = 'none'; }, 4000);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Initialize on Load
+    window.addEventListener('DOMContentLoaded', loadData);
   </script>
 </body>
 </html>
-

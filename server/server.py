@@ -44,6 +44,47 @@ def init_db():
         conn.commit()
 
 
+def _compute_fun_tag(rep, total_score, total_used, total_new, cpu_score, gpu_score):
+    """根据硬件特征自动计算具有社交传播属性的趣味装机称号与标签。"""
+    metrics = rep.get('metrics') or {}
+    items = {it.get('key'): it for it in rep.get('items', [])}
+
+    # 显卡占比
+    gpu_ratio = (gpu_score / max(total_score, 1)) if total_score > 0 else 0
+    gpu_price_ratio = 0
+    val = rep.get('valuation') or {}
+    gpu_used = val.get('gpu', {}).get('used', 0)
+    if total_used > 0 and gpu_used > 0:
+        gpu_price_ratio = gpu_used / total_used
+
+    # 硬盘总容量
+    disk_gb = metrics.get('disk_total_gb', 0)
+    # 屏幕高刷
+    hz = metrics.get('monitor_hz', 60)
+    cpu_cores = metrics.get('cpu_cores', 4)
+
+    # 判定称号
+    if total_used >= 25000 or total_new >= 35000:
+        return '👑 钞能力霸皇', '全服身价天花板，顶级硬件拉满，毫无妥协的赛博富豪'
+    if gpu_price_ratio >= 0.58 or (gpu_score >= 28000 and cpu_score < 18000):
+        return '🎮 卡比人贵', '显卡身价撑起大半壁江山，纯粹为了极致画质与游戏而生'
+    if gpu_score >= 26000 and cpu_cores <= 8 and cpu_score < 16000:
+        return '🏇 吕布骑驴', '旗舰卡皇配入门搭子，显卡在大喊“CPU你带得动我吗”'
+    if total_used <= 6000 and total_score >= 18000:
+        return '🛠️ 垃圾佬狂喜', '极致质价比刀锋战士，花最少的银子榨干每一丝极限战力'
+    if disk_gb >= 4000:
+        return '💾 固态仓鼠党', f'总固态储备超 {round(disk_gb/1024, 1)} TB，数字生命安乐窝，存满也不慌'
+    if hz >= 240:
+        return '⚡ 极致高刷狂', f'{hz}Hz 视网膜极速电竞屏，物理外挂，眨眼即被锁定'
+    if cpu_score >= 32000 and gpu_score >= 32000:
+        return '💥 双T0核弹井', 'CPU与GPU双双登顶第一梯队，4K全光追渲染毫无波澜'
+    if total_score >= 28000:
+        return '⚔️ 4K旗舰战神', '全画质通杀级主机，大型生产力与3A大作得力助手'
+    if total_score >= 20000:
+        return '🎯 甜点电竞主力', '主流网游与2K电竞黄金黄金水桶机，均衡耐打'
+    return '🌱 实用主义先锋', '高性价比日常战斗伙伴，满足学习、办公与轻度娱乐'
+
+
 def _extract_summary(rep):
     nick = (rep.get('nickname') or '').strip() or '神秘玩家'
     hd = rep.get('header') or {}
@@ -61,8 +102,8 @@ def _extract_summary(rep):
             cpu_name = rows[0].get('t', '-')
         elif k == 'gpu':
             gpu_name = rows[0].get('t', '-')
-        elif k == 'mem':
-            ram_desc = rows[0].get('t', '-')
+        elif k in ('mem', 'ram'):
+            ram_desc = it.get('summary') or rows[0].get('t', '-')
 
     total_score = int(val.get('total_score') or (metrics.get('cpu_score', 0) * 0.42 + metrics.get('gpu_score', 0) * 0.58) or 0)
     cpu_score = int(val.get('cpu', {}).get('score') or metrics.get('cpu_score') or 0)
@@ -74,7 +115,17 @@ def _extract_summary(rep):
     beat_pct = int(val.get('beat_pct') or 60)
     scan_time = rep.get('scan_time') or datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
 
-    # 以 昵称 + CPU + 显卡 生成稳定的 8 位短 ID, 同一玩家更新配置时自动覆盖旧记录不刷屏
+    # 计算质价比指数 (战力 / 二手价格 * 100)
+    value_ratio = round((total_score * 100.0) / max(total_used, 1000), 1) if total_used > 0 else 0
+    fun_tag, fun_desc = _compute_fun_tag(rep, total_score, total_used, total_new, cpu_score, gpu_score)
+
+    # 存入 rep 自身，方便前端详情直接获取
+    val['fun_tag'] = fun_tag
+    val['fun_desc'] = fun_desc
+    val['value_ratio'] = value_ratio
+    rep['valuation'] = val
+
+    # 以 昵称 + CPU + 显卡 生成稳定的 8 位短 ID
     seed = f'{nick.lower()}::{cpu_name.lower()}::{gpu_name.lower()}'
     short_id = hashlib.sha1(seed.encode('utf-8')).hexdigest()[:8]
 
@@ -93,6 +144,9 @@ def _extract_summary(rep):
         'overall_tier': overall_tier,
         'overall_title': overall_title,
         'beat_pct': beat_pct,
+        'value_ratio': value_ratio,
+        'fun_tag': fun_tag,
+        'fun_desc': fun_desc,
         'scan_time': scan_time,
         'updated_at': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
     }
@@ -156,10 +210,23 @@ def list_configs():
     for idx, r in enumerate(rows, 1):
         d = dict(r)
         d['rank'] = idx
+        raw = d.pop('report_json', '{}')
         try:
-            d['report'] = json.loads(d.pop('report_json'))
+            rep = json.loads(raw)
+            d['report'] = rep
+            val = rep.get('valuation') or {}
+            # 补齐趣味称号与质价比
+            if not val.get('fun_tag'):
+                s_tmp = _extract_summary(rep)
+                val = rep.get('valuation') or {}
+            d['fun_tag'] = val.get('fun_tag') or '🎯 实力战将'
+            d['fun_desc'] = val.get('fun_desc') or ''
+            d['value_ratio'] = val.get('value_ratio') or round((d['total_score'] * 100.0) / max(d['total_used'], 1000), 1)
         except Exception:
             d['report'] = {}
+            d['fun_tag'] = '🎯 实力战将'
+            d['fun_desc'] = ''
+            d['value_ratio'] = round((d['total_score'] * 100.0) / max(d['total_used'], 1000), 1)
         out.append(d)
     return out
 
