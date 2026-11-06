@@ -17,6 +17,57 @@ DB_PATH = os.path.join(DATA_DIR, 'pk.db')
 DB_LOCK = threading.Lock()
 PORT = int(os.environ.get('PORT', '3041'))
 
+ADMIN_KEY_FILE = os.path.join(DATA_DIR, 'admin.key')
+ADMIN_KEY = os.environ.get('ADMIN_KEY', '').strip()
+if not ADMIN_KEY:
+    if os.path.isfile(ADMIN_KEY_FILE):
+        try:
+            with open(ADMIN_KEY_FILE, 'r', encoding='utf-8') as f:
+                ADMIN_KEY = f.read().strip()
+        except Exception:
+            pass
+    if not ADMIN_KEY:
+        ADMIN_KEY = 'along888'
+        try:
+            with open(ADMIN_KEY_FILE, 'w', encoding='utf-8') as f:
+                f.write(ADMIN_KEY)
+        except Exception:
+            pass
+
+
+def get_admin_key():
+    global ADMIN_KEY
+    if os.path.isfile(ADMIN_KEY_FILE):
+        try:
+            with open(ADMIN_KEY_FILE, 'r', encoding='utf-8') as f:
+                k = f.read().strip()
+                if k:
+                    ADMIN_KEY = k
+        except Exception:
+            pass
+    return ADMIN_KEY
+
+
+def set_admin_key(new_key):
+    global ADMIN_KEY
+    new_key = (new_key or '').strip()
+    if not new_key:
+        raise ValueError('密码不能为空')
+    ADMIN_KEY = new_key
+    with open(ADMIN_KEY_FILE, 'w', encoding='utf-8') as f:
+        f.write(new_key)
+    return True
+
+
+def delete_configs(ids):
+    if not ids:
+        return 0
+    with DB_LOCK, sqlite3.connect(DB_PATH) as conn:
+        qmarks = ','.join(['?'] * len(ids))
+        cur = conn.execute(f'DELETE FROM configs WHERE id IN ({qmarks})', ids)
+        conn.commit()
+        return cur.rowcount
+
 
 def init_db():
     with DB_LOCK, sqlite3.connect(DB_PATH) as conn:
@@ -275,11 +326,26 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         self._handle_get(head_only=False)
 
+    def _verify_admin(self, body=None):
+        auth_key = self.headers.get('X-Admin-Key')
+        if not auth_key and isinstance(body, dict):
+            auth_key = body.get('admin_key') or body.get('key')
+        expected = get_admin_key()
+        return bool(auth_key and auth_key == expected)
+
     def _handle_get(self, head_only=False):
         parsed = urllib.parse.urlparse(self.path)
         p = urllib.parse.unquote(parsed.path)
         if p == '/api/configs':
             return self._send_json({'ok': True, 'items': list_configs()})
+        if p == '/api/admin/configs':
+            if not self._verify_admin():
+                return self._send_json({'ok': False, 'error': '未授权或管理密钥错误'}, 403)
+            return self._send_json({'ok': True, 'items': list_configs(), 'db_size': os.path.getsize(DB_PATH) if os.path.exists(DB_PATH) else 0})
+        if p == '/api/admin/export':
+            if not self._verify_admin():
+                return self._send_json({'ok': False, 'error': '未授权或管理密钥错误'}, 403)
+            return self._send_json({'ok': True, 'exported_at': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'items': list_configs()})
         if p.startswith('/api/config/'):
             cid = p.split('/api/config/', 1)[1].strip('/')
             for item in list_configs():
@@ -289,13 +355,58 @@ class Handler(BaseHTTPRequestHandler):
         if p in ('/download/硬件配置助手.zip', '/download/HardwareShot.zip', '/硬件配置助手.zip'):
             zp = os.path.join(HERE, '硬件配置助手.zip')
             return self._send_file(zp, 'application/zip', '硬件配置助手.zip', head_only=head_only)
+        if p in ('/admin', '/admin.html'):
+            return self._send_file(os.path.join(HERE, 'admin.html'), 'text/html; charset=utf-8', head_only=head_only)
         if p in ('/', '/index.html'):
             return self._send_file(os.path.join(HERE, 'index.html'), 'text/html; charset=utf-8', head_only=head_only)
         self.send_error(404, 'Not Found')
 
     def do_POST(self):
         parsed = urllib.parse.urlparse(self.path)
-        if parsed.path == '/api/upload':
+        p = parsed.path
+
+        # 管理员接口
+        if p.startswith('/api/admin/'):
+            try:
+                length = int(self.headers.get('Content-Length', '0'))
+                raw = self.rfile.read(length).decode('utf-8', 'replace') if length > 0 else '{}'
+                data = json.loads(raw) if raw.strip() else {}
+            except Exception as ex:
+                return self._send_json({'ok': False, 'error': f'请求体解析失败: {ex}'}, 400)
+
+            if p == '/api/admin/auth':
+                key = (data.get('key') or data.get('admin_key') or '').strip()
+                if key and key == get_admin_key():
+                    return self._send_json({'ok': True, 'msg': '认证成功'})
+                return self._send_json({'ok': False, 'error': '管理密钥错误'}, 403)
+
+            if not self._verify_admin(data):
+                return self._send_json({'ok': False, 'error': '未授权或管理密钥错误'}, 403)
+
+            if p == '/api/admin/delete':
+                ids = data.get('ids', [])
+                if isinstance(ids, str):
+                    ids = [ids]
+                deleted = delete_configs(ids)
+                return self._send_json({'ok': True, 'deleted': deleted, 'msg': f'成功删除 {deleted} 条记录'})
+
+            if p == '/api/admin/clear-all':
+                with DB_LOCK, sqlite3.connect(DB_PATH) as conn:
+                    cur = conn.execute('DELETE FROM configs')
+                    conn.commit()
+                    deleted = cur.rowcount
+                return self._send_json({'ok': True, 'deleted': deleted, 'msg': f'全服数据已清空，共删除 {deleted} 条记录'})
+
+            if p == '/api/admin/change-key':
+                new_key = data.get('new_key', '').strip()
+                if not new_key:
+                    return self._send_json({'ok': False, 'error': '新密码不能为空'}, 400)
+                set_admin_key(new_key)
+                return self._send_json({'ok': True, 'msg': '管理密钥已更新成功'})
+
+            return self.send_error(404, 'Not Found')
+
+        if p == '/api/upload':
             try:
                 length = int(self.headers.get('Content-Length', '0'))
                 if length <= 0 or length > 2 * 1024 * 1024:

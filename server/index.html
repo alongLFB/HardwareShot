@@ -23,6 +23,9 @@
       --red: #ef4444;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html {
+      scrollbar-gutter: stable;
+    }
     body {
       background: radial-gradient(circle at 50% 0%, #162447 0%, var(--bg) 60%);
       color: var(--text);
@@ -30,6 +33,9 @@
       min-height: 100vh;
       line-height: 1.5;
       padding-bottom: 110px; /* 为底部 PK Dock 留出空间 */
+    }
+    body.modal-open {
+      overflow: hidden !important;
     }
     .container { max-width: 1280px; margin: 0 auto; padding: 20px 16px; }
 
@@ -792,6 +798,15 @@
         <div id="metricsBarsList"></div>
       </div>
     </div>
+
+    <!-- Footer -->
+    <div style="text-align:center;margin-top:40px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.06);font-size:12px;color:#64748b;display:flex;justify-content:center;align-items:center;gap:16px;flex-wrap:wrap;">
+      <span>HardwareShot Cloud Arena · SA1</span>
+      <span>•</span>
+      <a href="/download/硬件配置助手.zip" style="color:#94a3b8;text-decoration:none;">下载 Windows 客户端</a>
+      <span>•</span>
+      <a href="/admin" target="_blank" style="color:#64748b;text-decoration:none;transition:color 0.2s;" onmouseover="this.style.color='#00f0ff'" onmouseout="this.style.color='#64748b'">⚙️ 后台管理</a>
+    </div>
   </div>
 
   <!-- Bottom Floating PK Dock (常驻底部悬浮对战池) -->
@@ -1447,10 +1462,14 @@
       `;
 
       document.getElementById('detailModal').classList.add('open');
+      lockBodyScroll();
     }
 
     function closeDetailModal() {
-      document.getElementById('detailModal').classList.remove('open');
+      if (document.getElementById('detailModal').classList.contains('open')) {
+        document.getElementById('detailModal').classList.remove('open');
+        unlockBodyScroll();
+      }
     }
 
     // ------------------------------------------------------------ Long Poster Generator (一键长图海报)
@@ -1536,6 +1555,7 @@
           const url = URL.createObjectURL(blob);
           document.getElementById('posterPreviewImg').src = url;
           document.getElementById('posterModal').classList.add('open');
+          lockBodyScroll();
         });
       } catch (err) {
         showToast('长图渲染失败: ' + err.message);
@@ -1601,6 +1621,7 @@
           const url = URL.createObjectURL(blob);
           document.getElementById('posterPreviewImg').src = url;
           document.getElementById('posterModal').classList.add('open');
+          lockBodyScroll();
         });
       } catch (err) {
         showToast('战报长图渲染失败: ' + err.message);
@@ -1631,7 +1652,10 @@
     }
 
     function closePosterModal() {
-      document.getElementById('posterModal').classList.remove('open');
+      if (document.getElementById('posterModal').classList.contains('open')) {
+        document.getElementById('posterModal').classList.remove('open');
+        unlockBodyScroll();
+      }
     }
 
     // ------------------------------------------------------------ URL Linking & Sharing
@@ -1706,7 +1730,42 @@
       e.target.value = '';
     });
 
-    // ------------------------------------------------------------ Helpers
+    // ------------------------------------------------------------ Helpers & Modal Scroll Lock
+    let openModalsCount = 0;
+
+    function lockBodyScroll() {
+      openModalsCount++;
+      document.body.classList.add('modal-open');
+    }
+
+    function unlockBodyScroll() {
+      openModalsCount = Math.max(0, openModalsCount - 1);
+      if (openModalsCount === 0) {
+        document.body.classList.remove('modal-open');
+      }
+    }
+
+    // 点击遮罩空白区域自动关闭弹窗
+    document.querySelectorAll('.modal-overlay').forEach(el => {
+      el.addEventListener('click', function(e) {
+        if (e.target === this) {
+          if (this.id === 'detailModal') closeDetailModal();
+          if (this.id === 'posterModal') closePosterModal();
+        }
+      });
+    });
+
+    // 键盘 Esc 键快捷关闭弹窗
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        if (document.getElementById('posterModal').classList.contains('open')) {
+          closePosterModal();
+        } else if (document.getElementById('detailModal').classList.contains('open')) {
+          closeDetailModal();
+        }
+      }
+    });
+
     function showToast(msg) {
       const t = document.getElementById('toast');
       t.innerText = msg;
