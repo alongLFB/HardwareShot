@@ -1005,6 +1005,113 @@
   <div id="posterSandbox" style="position:fixed;left:-9999px;top:-9999px;width:760px;background:#0b0f19;color:#f1f5f9;"></div>
 
   <script>
+    // ------------------------------------------------------------ 智能多硬件解析器 (多显卡 / 多硬盘 / 多显示器)
+    function isRowIgpu(r) {
+      if (!r) return false;
+      const ev = r._eval || {};
+      if (ev.note === 'CPU内置核显') return true;
+      const str = ((r.t || '') + ' ' + (r.s || '')).toLowerCase();
+      const igpuKws = ['intel(r) uhd', 'intel uhd', 'intel(r) iris', 'intel iris', 'intel(r) hd', 'amd radeon(tm) graphics', 'amd radeon graphics', 'radeon graphics', 'vega 7', 'vega 8'];
+      return igpuKws.some(kw => str.includes(kw));
+    }
+
+    function getSmartGpu(f) {
+      const rep = f.report || {};
+      const items = rep.items || [];
+      const gpuIt = items.find(it => it.key === 'gpu') || {};
+      const rows = gpuIt.rows || [];
+      if (!rows.length) {
+        return { primary: { t: f.gpu_name || '-' }, isMulti: false, subDesc: '', allRows: [] };
+      }
+
+      const discrete = [];
+      const igpus = [];
+      rows.forEach(r => {
+        if (isRowIgpu(r)) igpus.push(r);
+        else discrete.push(r);
+      });
+
+      const scoreFn = (r) => {
+        const ev = r._eval || {};
+        return (ev.score || 0) * 100 + (ev.used || 0);
+      };
+      discrete.sort((a,b) => scoreFn(b) - scoreFn(a));
+      igpus.sort((a,b) => scoreFn(b) - scoreFn(a));
+
+      const primary = discrete.length > 0 ? discrete[0] : igpus[0];
+      const isMulti = rows.length > 1;
+      let subDesc = '';
+      if (isMulti) {
+        if (discrete.length > 0 && igpus.length > 0) {
+          subDesc = `双显卡配置 (主力独显 + 协同核显: ${(igpus[0].t||'').split('(')[0].trim()})`;
+        } else if (discrete.length > 1) {
+          subDesc = `多独显系统 (共 ${discrete.length} 张独立显卡)`;
+        } else {
+          subDesc = `多显卡架构 (共 ${rows.length} 张显示适配器)`;
+        }
+      }
+      return { primary, isMulti, subDesc, allRows: rows, discrete, igpus };
+    }
+
+    function getSmartDisks(f) {
+      const rep = f.report || {};
+      const items = rep.items || [];
+      const diskIt = items.find(it => it.key === 'disk') || {};
+      const rows = diskIt.rows || [];
+      const metrics = rep.metrics || {};
+
+      let totalGb = 0;
+      let totalUsed = 0;
+      let totalNew = 0;
+      const diskList = [];
+
+      rows.forEach((r, idx) => {
+        const t = r.t || '';
+        const s = r.s || '';
+        const ev = r._eval || {};
+        totalUsed += (ev.used || 0);
+        totalNew += (ev.new || 0);
+
+        let cap = 0;
+        const m = (t + ' ' + s).match(/(\d+(?:\.\d+)?)\s*([tg]b)/i);
+        if (m) {
+          const num = parseFloat(m[1]);
+          const unit = m[2].toLowerCase();
+          cap = (unit === 'tb') ? Math.round(num * 1000) : Math.round(num);
+        }
+        totalGb += cap;
+        diskList.push({
+          idx: idx + 1,
+          name: t,
+          desc: s,
+          capGb: cap,
+          used: ev.used || 0,
+          new: ev.new || 0
+        });
+      });
+
+      const finalTotalGb = Math.max(totalGb, metrics.disk_total_gb || 0);
+      const totalStr = finalTotalGb >= 1000 ? `${(finalTotalGb/1000).toFixed(1)} TB` : `${finalTotalGb} GB`;
+
+      diskList.sort((a,b) => (b.used * 100 + b.capGb) - (a.used * 100 + a.capGb));
+      const primary = diskList.length > 0 ? diskList[0] : { name: '-', used: 0, new: 0 };
+      const isMulti = diskList.length > 1;
+      const ssdCount = diskList.filter(d => (d.name + ' ' + d.desc).toLowerCase().includes('ssd') || (d.name + ' ' + d.desc).toLowerCase().includes('nvme') || (d.name + ' ' + d.desc).includes('固态')).length;
+      const typeLabel = (ssdCount === diskList.length) ? `${diskList.length} 块 NVMe 固态` : `${diskList.length} 块硬盘组合`;
+      const summaryLabel = isMulti ? `总存储 ${totalStr} (共 ${typeLabel})` : primary.name;
+
+      return {
+        primary,
+        totalGb: finalTotalGb,
+        totalStr,
+        totalUsed,
+        totalNew,
+        summaryLabel,
+        isMulti,
+        disks: diskList
+      };
+    }
+
     // Global State
     let allConfigs = [];
     let currentSort = 'score';
@@ -1126,6 +1233,9 @@
         const crown = rank === 1 ? '👑' : (rank === 2 ? '🥈' : (rank === 3 ? '🥉' : ''));
         const inDock = selectedIds.includes(item.id);
 
+        const smartGpu = getSmartGpu(item);
+        const smartDisk = getSmartDisks(item);
+
         return `
           <div class="rank-row ${topClass}" id="row-${item.id}">
             <!-- Rank Num -->
@@ -1149,11 +1259,13 @@
               <div class="spec-line" title="${escapeHtml(item.cpu_name||'')}">
                 <span class="spec-icon">⚡</span> ${escapeHtml(item.cpu_name || '-')}
               </div>
-              <div class="spec-line" title="${escapeHtml(item.gpu_name||'')}">
-                <span class="spec-icon">🎮</span> ${escapeHtml(item.gpu_name || '-')}
+              <div class="spec-line" title="${escapeHtml(smartGpu.primary.t || item.gpu_name || '')}">
+                <span class="spec-icon">🎮</span> ${escapeHtml(smartGpu.primary.t || item.gpu_name || '-')}
+                ${smartGpu.isMulti ? '<span style="background:rgba(59,130,246,0.2);color:#93c5fd;font-size:10px;padding:1px 5px;border-radius:4px;margin-left:4px;">双显卡</span>' : ''}
               </div>
-              <div class="spec-line" title="${escapeHtml(item.ram_desc||'')}">
-                <span class="spec-icon">🧠</span> ${escapeHtml(item.ram_desc || '-')}
+              <div class="spec-line" title="${escapeHtml(smartDisk.summaryLabel)}">
+                <span class="spec-icon">💾</span> ${escapeHtml(smartDisk.summaryLabel)}
+                ${smartDisk.isMulti ? `<span style="background:rgba(16,185,129,0.2);color:#6ee7b7;font-size:10px;padding:1px 5px;border-radius:4px;margin-left:4px;">${smartDisk.disks.length}盘</span>` : ''}
               </div>
             </div>
 
@@ -1417,18 +1529,22 @@
         const getPart = (key) => items.find(it => it.key === key) || {};
 
         const cpu = getPart('cpu');
-        const gpu = getPart('gpu');
         const board = getPart('board');
         const ram = getPart('mem') || getPart('ram');
-        const disk = getPart('disk');
         const monitor = getPart('monitor');
 
         const cpuRow = (cpu.rows && cpu.rows[0]) || {};
-        const gpuRow = (gpu.rows && gpu.rows[0]) || {};
         const boardRow = (board.rows && board.rows[0]) || {};
         const ramRow = (ram.rows && ram.rows[0]) || {};
-        const diskRow = (disk.rows && disk.rows[0]) || {};
         const monitorRow = (monitor.rows && monitor.rows[0]) || {};
+
+        // 智能甄选主力独显与多显卡架构
+        const smartGpu = getSmartGpu(f);
+        const gpuRow = smartGpu.primary;
+        const gpuEval = gpuRow._eval || {};
+
+        // 智能聚合多硬盘
+        const smartDisk = getSmartDisks(f);
 
         return `
           <div class="fighter-card ${colorClass}">
@@ -1473,13 +1589,19 @@
                 <div class="part-sub-info">${escapeHtml(cpuRow.s || '')}</div>
               </div>
 
+              <!-- 智能主力显卡 -->
               <div class="part-box">
                 <div class="part-head">
                   <span class="part-type">🎮 显卡 GPU</span>
-                  <span class="part-price-badge">二手 ≈ ¥${gpuRow._eval ? gpuRow._eval.used : '-'}</span>
+                  <span class="part-price-badge">二手 ≈ ¥${gpuEval.used !== undefined ? gpuEval.used : '-'}</span>
                 </div>
                 <div class="part-main-title">${escapeHtml(gpuRow.t || f.gpu_name || '-')}</div>
                 <div class="part-sub-info">${escapeHtml(gpuRow.s || '')}</div>
+                ${smartGpu.isMulti ? `
+                  <div style="font-size:11px;color:var(--cyan);margin-top:4px;background:rgba(0,240,255,0.08);padding:3px 8px;border-radius:4px;border:1px solid rgba(0,240,255,0.2);">
+                    ⚡ ${escapeHtml(smartGpu.subDesc)}
+                  </div>
+                ` : ''}
               </div>
 
               <div class="part-box">
@@ -1491,13 +1613,25 @@
                 <div class="part-sub-info">${escapeHtml(ramRow.s || '')}</div>
               </div>
 
+              <!-- 智能多硬盘聚合 -->
               <div class="part-box">
                 <div class="part-head">
-                  <span class="part-type">💾 主硬盘 SSD</span>
-                  <span class="part-price-badge">二手 ≈ ¥${diskRow._eval ? diskRow._eval.used : '-'}</span>
+                  <span class="part-type">💾 存储总成 (${smartDisk.totalStr})</span>
+                  <span class="part-price-badge">二手总计 ≈ ¥${smartDisk.totalUsed.toLocaleString()}</span>
                 </div>
-                <div class="part-main-title">${escapeHtml(diskRow.t || '-')}</div>
-                <div class="part-sub-info">${escapeHtml(diskRow.s || '')}</div>
+                <div class="part-main-title">${escapeHtml(smartDisk.summaryLabel)}</div>
+                ${smartDisk.isMulti ? `
+                  <div style="margin-top:6px;display:flex;flex-direction:column;gap:3px;">
+                    ${smartDisk.disks.map(d => `
+                      <div style="font-size:11px;color:#cbd5e1;background:rgba(255,255,255,0.03);padding:3px 8px;border-radius:5px;display:flex;justify-content:space-between;">
+                        <span>└ 盘${d.idx}: ${escapeHtml(d.name.split('(')[0])}</span>
+                        <span style="color:var(--orange);">¥${d.used}</span>
+                      </div>
+                    `).join('')}
+                  </div>
+                ` : `
+                  <div class="part-sub-info">${escapeHtml(smartDisk.primary.desc || '')}</div>
+                `}
               </div>
 
               <div class="part-box">
@@ -1513,7 +1647,7 @@
         `;
       }).join('');
 
-      // 4. 对比条列表 (10 项指标对比)
+      // 4. 对比条列表 (11 项指标对比)
       const metricsConfig = [
         { label: '综合战力分', key: 'total_score', unit: '分', fmt: n => n.toLocaleString() },
         { label: 'CPU 性能分', key: 'cpu_score', unit: '分', fmt: n => n.toLocaleString() },
@@ -1523,6 +1657,7 @@
         { label: '质价比指数', key: 'value_ratio', unit: '', fmt: n => n },
         { label: 'CPU 核心数', getter: f => (f.report && f.report.metrics && f.report.metrics.cpu_cores) || 8, unit: '核', fmt: n => n + ' 核' },
         { label: '显卡显存容量', getter: f => (f.report && f.report.metrics && f.report.metrics.gpu_vram_gb) || 8, unit: 'GB', fmt: n => n + ' GB' },
+        { label: '存储总容量', getter: f => getSmartDisks(f).totalGb, unit: 'GB', fmt: n => (n >= 1000 ? (n/1000).toFixed(1) + ' TB' : n + ' GB') },
         { label: '内存总容量', getter: f => (f.report && f.report.metrics && f.report.metrics.ram_gb) || 16, unit: 'GB', fmt: n => n + ' GB' },
         { label: '屏幕刷新率', getter: f => (f.report && f.report.metrics && f.report.metrics.monitor_hz) || 60, unit: 'Hz', fmt: n => n + ' Hz' }
       ];
@@ -1884,16 +2019,18 @@
         const getPart = (key) => items.find(it => it.key === key) || {};
 
         const cpu = getPart('cpu');
-        const gpu = getPart('gpu');
         const ram = getPart('mem') || getPart('ram');
-        const disk = getPart('disk');
         const monitor = getPart('monitor');
 
         const cpuRow = (cpu.rows && cpu.rows[0]) || {};
-        const gpuRow = (gpu.rows && gpu.rows[0]) || {};
         const ramRow = (ram.rows && ram.rows[0]) || {};
-        const diskRow = (disk.rows && disk.rows[0]) || {};
         const monitorRow = (monitor.rows && monitor.rows[0]) || {};
+
+        const smartGpu = getSmartGpu(f);
+        const gpuRow = smartGpu.primary;
+        const gpuEval = gpuRow._eval || {};
+
+        const smartDisk = getSmartDisks(f);
 
         return `
           <div style="flex:1;background:#131b2e;border:2px solid ${color};border-radius:14px;padding:18px;box-sizing:border-box;">
@@ -1926,13 +2063,19 @@
                 <div style="font-size:10.5px;color:#94a3b8;">${escapeHtml(cpuRow.s || '')}</div>
               </div>
 
+              <!-- 智能主力显卡 -->
               <div style="background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:8px;">
                 <div style="display:flex;justify-content:space-between;font-size:10.5px;color:#00f0ff;font-weight:bold;">
                   <span>🎮 显卡 GPU</span>
-                  <span style="color:#f97316;">二手¥${gpuRow._eval ? gpuRow._eval.used : '-'}</span>
+                  <span style="color:#f97316;">二手¥${gpuEval.used !== undefined ? gpuEval.used : '-'}</span>
                 </div>
                 <div style="font-size:12.5px;font-weight:bold;color:#fff;margin-top:2px;">${escapeHtml((gpuRow.t || f.gpu_name || '-').split('(')[0])}</div>
                 <div style="font-size:10.5px;color:#94a3b8;">${escapeHtml(gpuRow.s || '')}</div>
+                ${smartGpu.isMulti ? `
+                  <div style="font-size:10px;color:#38bdf8;margin-top:3px;background:rgba(56,189,248,0.1);padding:2px 6px;border-radius:4px;">
+                    ⚡ ${escapeHtml(smartGpu.subDesc)}
+                  </div>
+                ` : ''}
               </div>
 
               <div style="background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:8px;">
@@ -1943,12 +2086,23 @@
                 <div style="font-size:12px;font-weight:bold;color:#fff;margin-top:2px;">${escapeHtml(ram.summary || ramRow.t || f.ram_desc || '-')}</div>
               </div>
 
+              <!-- 智能多硬盘聚合 -->
               <div style="background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:8px;">
                 <div style="display:flex;justify-content:space-between;font-size:10.5px;color:#00f0ff;font-weight:bold;">
-                  <span>💾 硬盘 SSD</span>
-                  <span style="color:#f97316;">二手¥${diskRow._eval ? diskRow._eval.used : '-'}</span>
+                  <span>💾 存储总成 (${smartDisk.totalStr})</span>
+                  <span style="color:#f97316;">二手总计¥${smartDisk.totalUsed.toLocaleString()}</span>
                 </div>
-                <div style="font-size:12px;font-weight:bold;color:#fff;margin-top:2px;">${escapeHtml(diskRow.t || '-')}</div>
+                <div style="font-size:12px;font-weight:bold;color:#fff;margin-top:2px;">${escapeHtml(smartDisk.summaryLabel)}</div>
+                ${smartDisk.isMulti ? `
+                  <div style="margin-top:4px;display:flex;flex-direction:column;gap:3px;">
+                    ${smartDisk.disks.map(d => `
+                      <div style="font-size:10.5px;color:#cbd5e1;background:rgba(255,255,255,0.03);padding:2px 6px;border-radius:4px;display:flex;justify-content:space-between;">
+                        <span>└ 盘${d.idx}: ${escapeHtml(d.name.split('(')[0])}</span>
+                        <span style="color:#f97316;">¥${d.used}</span>
+                      </div>
+                    `).join('')}
+                  </div>
+                ` : ''}
               </div>
 
               <div style="background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:8px;">
@@ -1964,7 +2118,7 @@
         `;
       }).join('');
 
-      // 10项对比条 HTML (在海报内)
+      // 11项对比条 HTML (在海报内)
       const metricsConfig = [
         { label: '综合战力分', key: 'total_score', fmt: n => n.toLocaleString() + ' 分' },
         { label: 'CPU 性能分', key: 'cpu_score', fmt: n => n.toLocaleString() + ' 分' },
@@ -1972,6 +2126,7 @@
         { label: '二手市场残值', key: 'total_used', fmt: n => '¥' + n.toLocaleString() },
         { label: '质价比指数', key: 'value_ratio', fmt: n => n },
         { label: '显卡显存', getter: f => (f.report && f.report.metrics && f.report.metrics.gpu_vram_gb) || 8, fmt: n => n + ' GB' },
+        { label: '存储总容量', getter: f => getSmartDisks(f).totalGb, fmt: n => (n >= 1000 ? (n/1000).toFixed(1) + ' TB' : n + ' GB') },
         { label: '内存容量', getter: f => (f.report && f.report.metrics && f.report.metrics.ram_gb) || 16, fmt: n => n + ' GB' },
         { label: '屏幕刷新率', getter: f => (f.report && f.report.metrics && f.report.metrics.monitor_hz) || 60, fmt: n => n + ' Hz' }
       ];

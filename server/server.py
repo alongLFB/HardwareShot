@@ -5,6 +5,7 @@ import datetime
 import hashlib
 import json
 import os
+import re
 import sqlite3
 import threading
 import urllib.parse
@@ -136,6 +137,138 @@ def _compute_fun_tag(rep, total_score, total_used, total_new, cpu_score, gpu_sco
     return '🌱 实用主义先锋', '高性价比日常战斗伙伴，满足学习、办公与轻度娱乐'
 
 
+def _is_igpu(row):
+    """判断某一行显卡是否为 CPU 内置核显。"""
+    ev = row.get('_eval') or {}
+    if ev.get('note') == 'CPU内置核显':
+        return True
+    t = (row.get('t') or '').lower()
+    s = (row.get('s') or '').lower()
+    igpu_keywords = [
+        'intel(r) uhd', 'intel uhd', 'intel(r) iris', 'intel iris', 'intel(r) hd', 'intel hd graphics',
+        'amd radeon(tm) graphics', 'amd radeon graphics', 'radeon(tm) graphics', 'radeon graphics', 'vega 7', 'vega 8'
+    ]
+    for kw in igpu_keywords:
+        if kw in t or kw in s:
+            return True
+    return False
+
+
+def _pick_primary_gpu(gpu_rows):
+    """
+    智能挑选主力显卡:
+    当存在多张显卡(如独显+核显)时，优先挑选性能/显存/估值最高的独立显卡出战；
+    绝不用核显冒充主力独显，同时输出多显卡副标。
+    """
+    if not gpu_rows:
+        return {'primary_name': '-', 'sub_desc': '', 'row': {}, 'is_multi': False}
+
+    discrete_gpus = []
+    igpus = []
+
+    for r in gpu_rows:
+        if _is_igpu(r):
+            igpus.append(r)
+        else:
+            discrete_gpus.append(r)
+
+    # 排序权重: 性能跑分 score > 二手估值 used > 显存
+    def gpu_rank_score(r):
+        ev = r.get('_eval') or {}
+        return (ev.get('score', 0) * 100) + ev.get('used', 0)
+
+    if discrete_gpus:
+        discrete_gpus.sort(key=gpu_rank_score, reverse=True)
+        primary = discrete_gpus[0]
+    else:
+        igpus.sort(key=gpu_rank_score, reverse=True)
+        primary = igpus[0]
+
+    is_multi = len(gpu_rows) > 1
+    sub_desc = ''
+    if is_multi:
+        if discrete_gpus and igpus:
+            sub_desc = f'双显卡配置 (主力独显 + 辅助核显: {igpus[0].get("t", "").split("(")[0].strip()})'
+        elif len(discrete_gpus) > 1:
+            sub_desc = f'多独显系统 (共 {len(discrete_gpus)} 张独立显卡)'
+        else:
+            sub_desc = f'多显卡架构 (共 {len(gpu_rows)} 张显示适配器)'
+
+    return {
+        'primary_name': primary.get('t', '-'),
+        'sub_desc': sub_desc,
+        'row': primary,
+        'is_multi': is_multi,
+        'all_rows': gpu_rows
+    }
+
+
+def _aggregate_disks(disk_rows, metrics):
+    """
+    智能聚合多硬盘:
+    当存在多块固态/机械硬盘时，累加总存储容量，以旗舰主盘/系统盘为主标，
+    并输出多盘规格清单。
+    """
+    if not disk_rows:
+        return {'primary_name': '-', 'total_gb': 0, 'summary_label': '-', 'disks': []}
+
+    disks_info = []
+    calc_total_gb = 0
+
+    for idx, r in enumerate(disk_rows, 1):
+        t = r.get('t', '')
+        s = r.get('s', '')
+        # 尝试提取容量数字
+        cap_gb = 0
+        m_cap = re.search(r'(\d+(?:\.\d+)?)\s*([tg]b)', f'{t} {s}', re.I)
+        if m_cap:
+            val_num = float(m_cap.group(1))
+            unit = m_cap.group(2).lower()
+            if unit == 'tb':
+                cap_gb = int(val_num * 1000)
+            else:
+                cap_gb = int(val_num)
+        calc_total_gb += cap_gb
+
+        disks_info.append({
+            'index': idx,
+            'name': t,
+            'desc': s,
+            'cap_gb': cap_gb,
+            'eval': r.get('_eval', {})
+        })
+
+    metric_total = metrics.get('disk_total_gb', 0)
+    final_total_gb = max(calc_total_gb, metric_total)
+
+    # 格式化总容量 (如 6000 GB -> 6.0 TB)
+    if final_total_gb >= 1000:
+        total_str = f'{round(final_total_gb / 1000.0, 1)} TB'
+    else:
+        total_str = f'{final_total_gb} GB'
+
+    # 挑选主力主盘 (估值最高或包含系统标识)
+    def disk_rank(d):
+        ev = d['eval']
+        return ev.get('used', 0) * 100 + d['cap_gb']
+
+    sorted_disks = sorted(disks_info, key=disk_rank, reverse=True)
+    primary = sorted_disks[0] if sorted_disks else {'name': '-'}
+
+    ssd_count = sum(1 for d in disks_info if any(k in f"{d['name']} {d['desc']}".lower() for k in ['ssd', 'nvme', '固态']))
+    type_label = f'{len(disks_info)} 块 SSD 固态' if ssd_count == len(disks_info) else f'{len(disks_info)} 块硬盘'
+
+    summary_label = f'总存储 {total_str} (共 {type_label})' if len(disks_info) > 1 else primary['name']
+
+    return {
+        'primary_name': primary['name'],
+        'total_gb': final_total_gb,
+        'total_str': total_str,
+        'summary_label': summary_label,
+        'disks': disks_info
+    }
+
+
 def _extract_summary(rep):
     nick = (rep.get('nickname') or '').strip() or '神秘玩家'
     hd = rep.get('header') or {}
@@ -143,7 +276,10 @@ def _extract_summary(rep):
     metrics = rep.get('metrics') or {}
     model = (hd.get('model') or '').strip() or '台式电脑'
 
-    cpu_name, gpu_name, ram_desc = '-', '-', '-'
+    cpu_name, ram_desc = '-', '-'
+    gpu_rows = []
+    disk_rows = []
+
     for it in rep.get('items', []):
         k = it.get('key')
         rows = it.get('rows') or []
@@ -152,9 +288,19 @@ def _extract_summary(rep):
         if k == 'cpu':
             cpu_name = rows[0].get('t', '-')
         elif k == 'gpu':
-            gpu_name = rows[0].get('t', '-')
+            gpu_rows = rows
         elif k in ('mem', 'ram'):
             ram_desc = it.get('summary') or rows[0].get('t', '-')
+        elif k == 'disk':
+            disk_rows = rows
+
+    # 智能挑选主力显卡 (排除核显作为首选)
+    gpu_picked = _pick_primary_gpu(gpu_rows)
+    gpu_name = gpu_picked['primary_name']
+
+    # 智能聚合多硬盘
+    disk_picked = _aggregate_disks(disk_rows, metrics)
+    metrics['disk_total_gb'] = disk_picked['total_gb']
 
     total_score = int(val.get('total_score') or (metrics.get('cpu_score', 0) * 0.42 + metrics.get('gpu_score', 0) * 0.58) or 0)
     cpu_score = int(val.get('cpu', {}).get('score') or metrics.get('cpu_score') or 0)
@@ -174,7 +320,10 @@ def _extract_summary(rep):
     val['fun_tag'] = fun_tag
     val['fun_desc'] = fun_desc
     val['value_ratio'] = value_ratio
+    val['gpu_picked'] = gpu_picked
+    val['disk_picked'] = disk_picked
     rep['valuation'] = val
+    rep['metrics'] = metrics
 
     # 以 昵称 + CPU + 显卡 生成稳定的 8 位短 ID
     seed = f'{nick.lower()}::{cpu_name.lower()}::{gpu_name.lower()}'
@@ -198,6 +347,8 @@ def _extract_summary(rep):
         'value_ratio': value_ratio,
         'fun_tag': fun_tag,
         'fun_desc': fun_desc,
+        'gpu_picked': gpu_picked,
+        'disk_picked': disk_picked,
         'scan_time': scan_time,
         'updated_at': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
     }
@@ -265,19 +416,21 @@ def list_configs():
         try:
             rep = json.loads(raw)
             d['report'] = rep
-            val = rep.get('valuation') or {}
-            # 补齐趣味称号与质价比
-            if not val.get('fun_tag'):
-                s_tmp = _extract_summary(rep)
-                val = rep.get('valuation') or {}
-            d['fun_tag'] = val.get('fun_tag') or '🎯 实力战将'
-            d['fun_desc'] = val.get('fun_desc') or ''
-            d['value_ratio'] = val.get('value_ratio') or round((d['total_score'] * 100.0) / max(d['total_used'], 1000), 1)
+            # 实时智能提取主力独显、多硬盘聚合及趣味称号
+            s_dyn = _extract_summary(rep)
+            d['gpu_name'] = s_dyn['gpu_name']  # 修正老数据存成核显的问题
+            d['fun_tag'] = s_dyn['fun_tag']
+            d['fun_desc'] = s_dyn['fun_desc']
+            d['value_ratio'] = s_dyn['value_ratio']
+            d['gpu_picked'] = s_dyn['gpu_picked']
+            d['disk_picked'] = s_dyn['disk_picked']
         except Exception:
             d['report'] = {}
             d['fun_tag'] = '🎯 实力战将'
             d['fun_desc'] = ''
             d['value_ratio'] = round((d['total_score'] * 100.0) / max(d['total_used'], 1000), 1)
+            d['gpu_picked'] = {'primary_name': d.get('gpu_name', '-'), 'sub_desc': '', 'is_multi': False}
+            d['disk_picked'] = {'primary_name': '-', 'total_gb': 0, 'summary_label': '-', 'disks': []}
         out.append(d)
     return out
 
