@@ -227,9 +227,10 @@
         <div class="auth-box">
           <span class="status-dot" id="authDot" title="认证状态"></span>
           <span style="font-size:12px;color:var(--sub);">管理密钥:</span>
-          <input type="password" id="adminKeyInput" placeholder="输入管理密钥..." />
+          <input type="password" id="adminKeyInput" placeholder="输入管理密钥..." onkeydown="if(event.key==='Enter') saveAndVerifyKey()" />
           <button class="btn btn-primary btn-sm" onclick="saveAndVerifyKey()">验证解锁</button>
-          <button class="btn btn-ghost btn-sm" onclick="changeAdminKeyPrompt()">修改密钥</button>
+          <button class="btn btn-ghost btn-sm" id="btnChangeKey" onclick="changeAdminKeyPrompt()" style="display:none;">修改密钥</button>
+          <button class="btn btn-ghost btn-sm" id="btnLogout" onclick="logoutAdmin()" style="display:none;">锁定退出</button>
         </div>
         <a class="btn btn-ghost" href="/">🌐 返回前台网站</a>
       </div>
@@ -299,15 +300,40 @@
     let selectedIds = new Set();
 
     function getSavedKey() {
-      return localStorage.getItem('hw_admin_key') || 'along888';
+      return (localStorage.getItem('hw_admin_key') || '').trim();
     }
 
     function setSavedKey(k) {
-      localStorage.setItem('hw_admin_key', k);
-      document.getElementById('adminKeyInput').value = k;
+      if (k) {
+        localStorage.setItem('hw_admin_key', k);
+      } else {
+        localStorage.removeItem('hw_admin_key');
+      }
+    }
+
+    function logoutAdmin() {
+      setSavedKey('');
+      document.getElementById('adminKeyInput').value = '';
+      document.getElementById('authDot').classList.remove('active');
+      document.getElementById('btnChangeKey').style.display = 'none';
+      document.getElementById('btnLogout').style.display = 'none';
+      configsList = [];
+      document.getElementById('stCount').innerText = '0 台';
+      document.getElementById('stSize').innerText = '0 KB';
+      document.getElementById('stTopScore').innerText = '- 分';
+      document.getElementById('stTopUsed').innerText = '-';
+      document.getElementById('tableBody').innerHTML = `
+        <tr>
+          <td colspan="9" style="text-align:center;padding:50px;color:var(--sub);">
+            🔒 管理后台已锁定。请输入管理密钥并点击「验证解锁」以加载数据。
+          </td>
+        </tr>
+      `;
+      showToast('已锁定后台并清除本地凭证');
     }
 
     async function verifyKey(key) {
+      if (!key) return false;
       try {
         const res = await fetch('/api/admin/auth', {
           method: 'POST',
@@ -332,18 +358,30 @@
       if (ok) {
         setSavedKey(k);
         document.getElementById('authDot').classList.add('active');
-        showToast('✔ 认证成功！');
+        document.getElementById('btnChangeKey').style.display = 'inline-flex';
+        document.getElementById('btnLogout').style.display = 'inline-flex';
+        showToast('✔ 认证成功，已进入管理中心！');
         loadAdminData();
       } else {
         document.getElementById('authDot').classList.remove('active');
-        showToast('✕ 密钥错误，请重新输入');
+        document.getElementById('btnChangeKey').style.display = 'none';
+        document.getElementById('btnLogout').style.display = 'none';
+        showToast('✕ 密钥错误，拒绝访问！');
       }
     }
 
     async function changeAdminKeyPrompt() {
       const key = getSavedKey();
-      const newKey = prompt('请输入新的管理密钥 (至少 4 位字符):');
+      if (!key) {
+        showToast('请先登录解锁管理权限');
+        return;
+      }
+      const newKey = prompt('请输入新的管理密钥 (至少 6 位字符):');
       if (!newKey || !newKey.trim()) return;
+      if (newKey.trim().length < 6) {
+        alert('为了安全，新密钥长度不能少于 6 位字符！');
+        return;
+      }
 
       try {
         const res = await fetch('/api/admin/change-key', {
@@ -357,6 +395,7 @@
         const data = await res.json();
         if (data.ok) {
           setSavedKey(newKey.trim());
+          document.getElementById('adminKeyInput').value = newKey.trim();
           showToast('✔ 管理密钥已修改成功，请牢记新密钥！');
         } else {
           showToast('修改失败: ' + (data.error || '未知错误'));
@@ -368,24 +407,24 @@
 
     async function loadAdminData() {
       const key = getSavedKey();
+      if (!key) {
+        logoutAdmin();
+        return;
+      }
       try {
         const res = await fetch('/api/admin/configs', {
           headers: { 'X-Admin-Key': key }
         });
         if (res.status === 403) {
-          document.getElementById('authDot').classList.remove('active');
-          document.getElementById('tableBody').innerHTML = `
-            <tr>
-              <td colspan="9" style="text-align:center;padding:40px;color:var(--red);">
-                🔒 密钥未认证或错误，请在上方输入正确管理密钥后点击「验证解锁」！
-              </td>
-            </tr>
-          `;
+          logoutAdmin();
+          showToast('密钥失效或错误，请重新输入');
           return;
         }
         const data = await res.json();
         if (data.ok) {
           document.getElementById('authDot').classList.add('active');
+          document.getElementById('btnChangeKey').style.display = 'inline-flex';
+          document.getElementById('btnLogout').style.display = 'inline-flex';
           configsList = data.items || [];
           document.getElementById('stCount').innerText = configsList.length + ' 台';
           document.getElementById('stSize').innerText = Math.round((data.db_size || 0) / 1024) + ' KB';
@@ -598,8 +637,13 @@
 
     // Auto initialize on page load
     window.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('adminKeyInput').value = getSavedKey();
-      loadAdminData();
+      const k = getSavedKey();
+      document.getElementById('adminKeyInput').value = k;
+      if (k) {
+        loadAdminData();
+      } else {
+        logoutAdmin();
+      }
     });
   </script>
 </body>

@@ -85,6 +85,138 @@
     .hero p { color: var(--sub); font-size: 13.5px; margin-top: 4px; }
     .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 
+    /* Confetti Canvas */
+    #confettiCanvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      pointer-events: none;
+      z-index: 3000;
+      display: none;
+    }
+
+    /* Match Intro Splash (开战冲击波特效) */
+    #matchIntroOverlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(circle at center, rgba(10,86,216,0.95) 0%, rgba(11,15,25,0.98) 75%);
+      z-index: 2900;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    #matchIntroOverlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .intro-box {
+      text-align: center;
+      animation: vsZoom 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes vsZoom {
+      0% { transform: scale(0.6); opacity: 0; filter: blur(8px); }
+      40% { transform: scale(1.08); opacity: 1; filter: blur(0); }
+      70% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(1.02); opacity: 1; }
+    }
+    .intro-tag {
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 4px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .intro-vs-title {
+      font-size: 46px;
+      font-weight: 900;
+      background: linear-gradient(90deg, #fde047, #f97316, #00f0ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 2px;
+      text-shadow: 0 0 30px rgba(249,115,22,0.4);
+    }
+    .intro-fighters {
+      font-size: 20px;
+      font-weight: 800;
+      color: white;
+      margin-top: 14px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .intro-winner-hint {
+      margin-top: 20px;
+      background: rgba(253,224,71,0.15);
+      border: 1.5px solid var(--gold);
+      padding: 10px 24px;
+      border-radius: 30px;
+      color: var(--gold);
+      font-size: 17px;
+      font-weight: 900;
+      box-shadow: 0 0 25px rgba(253,224,71,0.3);
+      display: inline-block;
+    }
+
+    /* Champion Showcase Banner (冠军登顶特写展台) */
+    .champ-banner {
+      background: linear-gradient(135deg, rgba(253,224,71,0.12) 0%, rgba(249,115,22,0.1) 50%, rgba(19,27,46,0.9) 100%);
+      border: 2px solid rgba(253,224,71,0.7);
+      border-radius: 16px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 0 35px rgba(253,224,71,0.22);
+      position: relative;
+      overflow: hidden;
+      animation: champGlow 2.5s infinite alternate ease-in-out;
+    }
+    @keyframes champGlow {
+      0% { box-shadow: 0 0 20px rgba(253,224,71,0.18); border-color: rgba(253,224,71,0.6); }
+      100% { box-shadow: 0 0 40px rgba(253,224,71,0.38); border-color: rgba(253,224,71,0.95); }
+    }
+    .champ-banner::before {
+      content: "CHAMPION";
+      position: absolute;
+      right: 18px; bottom: -12px;
+      font-size: 60px;
+      font-weight: 900;
+      color: rgba(255,255,255,0.03);
+      letter-spacing: 4px;
+      pointer-events: none;
+    }
+    .champ-left { display: flex; align-items: center; gap: 16px; }
+    .champ-trophy-icon {
+      font-size: 48px;
+      line-height: 1;
+      filter: drop-shadow(0 0 15px rgba(253,224,71,0.6));
+    }
+    .champ-winner-name { font-size: 24px; font-weight: 900; color: white; display: flex; align-items: center; gap: 10px; }
+    .champ-winner-sub { font-size: 13px; color: var(--sub); margin-top: 4px; }
+    .champ-advantage-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .adv-tag {
+      font-size: 11.5px;
+      font-weight: 800;
+      padding: 3px 10px;
+      border-radius: 6px;
+      background: rgba(253,224,71,0.15);
+      color: var(--gold);
+      border: 1px solid rgba(253,224,71,0.4);
+    }
+    .champ-score-box { text-align: right; }
+    .champ-score-title { font-size: 12px; color: var(--sub); }
+    .champ-score-val { font-size: 36px; font-weight: 900; color: var(--gold); line-height: 1.1; text-shadow: 0 0 20px rgba(253,224,71,0.5); }
+
     /* Buttons */
     .btn {
       display: inline-flex;
@@ -685,6 +817,16 @@
   </style>
 </head>
 <body>
+  <canvas id="confettiCanvas"></canvas>
+  <div id="matchIntroOverlay">
+    <div class="intro-box">
+      <div class="intro-tag">⚡ HARDWARESHOT ARENA 巅峰对决</div>
+      <div class="intro-vs-title">⚔️ MATCH START</div>
+      <div class="intro-fighters" id="introFighters"></div>
+      <div class="intro-winner-hint" id="introWinnerHint"></div>
+    </div>
+  </div>
+
   <div id="toast"></div>
   <input type="file" id="fileInput" accept=".json" style="display:none" />
 
@@ -779,6 +921,9 @@
           <button class="btn btn-ghost" onclick="switchTab('rank')">← 返回风云榜选人</button>
         </div>
       </div>
+
+      <!-- Champion Spotlight Banner (冠军登顶特写展台) -->
+      <div class="champ-banner" id="champBanner"></div>
 
       <!-- Podiums (单项王者颁奖台) -->
       <div class="podium-grid" id="podiumGrid"></div>
@@ -1110,6 +1255,7 @@
       renderDock();
       renderRankList();
       switchTab('pk');
+      triggerIntroAnimation();
     }
 
     function triggerRandomPk() {
@@ -1124,6 +1270,7 @@
       renderDock();
       renderRankList();
       switchTab('pk');
+      triggerIntroAnimation();
       showToast(`🎲 随机挑选了 ${pickCount} 位神仙对决！`);
     }
 
@@ -1137,6 +1284,14 @@
         return;
       }
       switchTab('pk');
+      triggerIntroAnimation();
+    }
+
+    function triggerIntroAnimation() {
+      const fighters = selectedIds.map(id => allConfigs.find(c => c.id === id)).filter(Boolean);
+      if (fighters.length < 2) return;
+      const bestScore = [...fighters].sort((a,b) => (b.total_score||0) - (a.total_score||0))[0];
+      playMatchIntroAndCelebrate(bestScore, fighters);
     }
 
     // ------------------------------------------------------------ View 2: Multi-PC Arena Rendering (多机大乱斗)
@@ -1164,6 +1319,40 @@
       const bestRatio = [...fighters].sort((a,b) => (b.value_ratio||0) - (a.value_ratio||0))[0];
       const bestCpu = [...fighters].sort((a,b) => (b.cpu_score||0) - (a.cpu_score||0))[0];
       const bestGpu = [...fighters].sort((a,b) => (b.gpu_score||0) - (a.gpu_score||0))[0];
+
+      // 冠军高光展台 (Champion Spotlight)
+      const champAdvTags = [];
+      if (bestScore.gpu_score >= 24000) champAdvTags.push(`🎮 显卡战力 ${bestScore.gpu_score.toLocaleString()} 分`);
+      if (bestScore.cpu_score >= 24000) champAdvTags.push(`⚡ CPU 性能 ${bestScore.cpu_score.toLocaleString()} 分`);
+      const champMetrics = (bestScore.report && bestScore.report.metrics) || {};
+      if (champMetrics.monitor_hz >= 180) champAdvTags.push(`🖥️ ${champMetrics.monitor_hz}Hz 极速电竞屏`);
+      if (champMetrics.disk_total_gb >= 2000) champAdvTags.push(`💾 ${Math.round(champMetrics.disk_total_gb/1024)}TB 固态大仓`);
+      if (bestScore.value_ratio >= 200) champAdvTags.push(`💰 质价比指数 ${bestScore.value_ratio}`);
+      if (champAdvTags.length === 0) champAdvTags.push('✨ 全面均衡顶级水桶');
+
+      document.getElementById('champBanner').innerHTML = `
+        <div class="champ-left">
+          <div class="champ-trophy-icon">🏆</div>
+          <div>
+            <div class="champ-winner-name">
+              <span>${escapeHtml(bestScore.nickname)}</span>
+              <span class="tier-badge tier-${bestScore.overall_tier||'T0'}">${bestScore.overall_tier||'T0'}</span>
+              ${bestScore.fun_tag ? `<span class="fun-badge">${escapeHtml(bestScore.fun_tag)}</span>` : ''}
+            </div>
+            <div class="champ-winner-sub">
+              ${escapeHtml(bestScore.model||'台式电脑')} · 斩获本场多机对决总冠军宝座！
+            </div>
+            <div class="champ-advantage-tags">
+              ${champAdvTags.map(t => `<span class="adv-tag">${escapeHtml(t)}</span>`).join('')}
+            </div>
+          </div>
+        </div>
+        <div class="champ-score-box">
+          <div class="champ-score-title">综合总战力冠军分</div>
+          <div class="champ-score-val">${(bestScore.total_score||0).toLocaleString()} <span style="font-size:16px;">分</span></div>
+          <div style="font-size:12px;color:var(--orange);margin-top:2px;">二手残值 ≈ ¥${(bestScore.total_used||0).toLocaleString()}</div>
+        </div>
+      `;
 
       document.getElementById('podiumGrid').innerHTML = `
         <div class="podium-card">
@@ -1562,40 +1751,317 @@
       }
     }
 
+    // ------------------------------------------------------------ 粒子撒花动效 (Confetti) & 开战冲击波
+    let confettiCtx = null;
+    let confettiParticles = [];
+    let confettiAnimationId = null;
+
+    function fireConfetti(durationMs = 3500) {
+      const canvas = document.getElementById('confettiCanvas');
+      if (!canvas) return;
+      canvas.style.display = 'block';
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      confettiCtx = canvas.getContext('2d');
+
+      const colors = ['#fde047', '#00f0ff', '#f97316', '#a855f7', '#10b981', '#ec4899', '#ffffff'];
+      confettiParticles = [];
+      for (let i = 0; i < 120; i++) {
+        confettiParticles.push({
+          x: window.innerWidth * 0.5 + (Math.random() - 0.5) * 450,
+          y: window.innerHeight * 0.35 + (Math.random() - 0.5) * 200,
+          vx: (Math.random() - 0.5) * 14,
+          vy: Math.random() * -12 - 4,
+          gravity: 0.35 + Math.random() * 0.2,
+          size: Math.random() * 8 + 6,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          rotation: Math.random() * 360,
+          vRot: (Math.random() - 0.5) * 10,
+          shape: Math.random() > 0.4 ? 'rect' : 'circle',
+          alpha: 1,
+          decay: 0.006 + Math.random() * 0.008
+        });
+      }
+
+      const startTime = performance.now();
+      if (confettiAnimationId) cancelAnimationFrame(confettiAnimationId);
+
+      function loop(now) {
+        confettiCtx.clearRect(0, 0, canvas.width, canvas.height);
+        let activeCount = 0;
+        for (let p of confettiParticles) {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += p.gravity;
+          p.vx *= 0.98;
+          p.rotation += p.vRot;
+          p.alpha -= p.decay;
+
+          if (p.alpha > 0 && p.y < canvas.height + 20) {
+            activeCount++;
+            confettiCtx.save();
+            confettiCtx.translate(p.x, p.y);
+            confettiCtx.rotate((p.rotation * Math.PI) / 180);
+            confettiCtx.globalAlpha = Math.max(0, p.alpha);
+            confettiCtx.fillStyle = p.color;
+            if (p.shape === 'rect') {
+              confettiCtx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+            } else {
+              confettiCtx.beginPath();
+              confettiCtx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+              confettiCtx.fill();
+            }
+            confettiCtx.restore();
+          }
+        }
+
+        if (activeCount > 0 && (now - startTime < durationMs)) {
+          confettiAnimationId = requestAnimationFrame(loop);
+        } else {
+          canvas.style.display = 'none';
+          confettiParticles = [];
+        }
+      }
+      confettiAnimationId = requestAnimationFrame(loop);
+    }
+
+    function playMatchIntroAndCelebrate(winner, fighters) {
+      const overlay = document.getElementById('matchIntroOverlay');
+      const fightersEl = document.getElementById('introFighters');
+      const winnerHint = document.getElementById('introWinnerHint');
+      if (!overlay || !fightersEl) return;
+
+      fightersEl.innerHTML = fighters.map((f, i) => `
+        <span style="color:${THEME_COLORS[i % 4]};">${escapeHtml(f.nickname)}</span>
+        ${i < fighters.length - 1 ? '<span style="color:#64748b;font-size:16px;">VS</span>' : ''}
+      `).join('');
+
+      winnerHint.innerHTML = `👑 胜出判定：【${escapeHtml(winner.nickname)}】夺得综合战力总冠军！`;
+
+      overlay.classList.add('active');
+      lockBodyScroll();
+
+      setTimeout(() => {
+        overlay.classList.remove('active');
+        unlockBodyScroll();
+        fireConfetti(3800);
+        const cb = document.getElementById('champBanner');
+        if (cb) {
+          cb.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 1250);
+    }
+
     async function generatePkPoster() {
       const fighters = selectedIds.map(id => allConfigs.find(c => c.id === id)).filter(Boolean);
       if (fighters.length < 2) return;
-      showToast('正在渲染 PK 战报长图，请稍候…');
+      showToast('正在为您渲染高清战报长图海报，请稍候…');
 
+      const bestScore = [...fighters].sort((a,b) => (b.total_score||0) - (a.total_score||0))[0];
+      const bestRatio = [...fighters].sort((a,b) => (b.value_ratio||0) - (a.value_ratio||0))[0];
+      const bestCpu = [...fighters].sort((a,b) => (b.cpu_score||0) - (a.cpu_score||0))[0];
+      const bestGpu = [...fighters].sort((a,b) => (b.gpu_score||0) - (a.gpu_score||0))[0];
+
+      // 冠军优势胶囊
+      const champAdvTags = [];
+      if (bestScore.gpu_score >= 24000) champAdvTags.push(`🎮 显卡算力 ${bestScore.gpu_score.toLocaleString()} 分`);
+      if (bestScore.cpu_score >= 24000) champAdvTags.push(`⚡ CPU 性能 ${bestScore.cpu_score.toLocaleString()} 分`);
+      const champMetrics = (bestScore.report && bestScore.report.metrics) || {};
+      if (champMetrics.monitor_hz >= 180) champAdvTags.push(`🖥️ ${champMetrics.monitor_hz}Hz 极速电竞屏`);
+      if (champMetrics.disk_total_gb >= 2000) champAdvTags.push(`💾 ${Math.round(champMetrics.disk_total_gb/1024)}TB 固态大仓`);
+      if (bestScore.value_ratio >= 200) champAdvTags.push(`💰 质价比指数 ${bestScore.value_ratio}`);
+      if (champAdvTags.length === 0) champAdvTags.push('✨ 全面均衡顶级水桶');
+
+      // 战报评语
+      const commentary = document.getElementById('commentaryText').innerText;
+
+      // 选手列 HTML
       const fightersHtml = fighters.map((f, idx) => {
         const color = THEME_COLORS[idx % 4];
+        const isChamp = (f.id === bestScore.id);
+        const rep = f.report || {};
+        const items = rep.items || [];
+        const getPart = (key) => items.find(it => it.key === key) || {};
+
+        const cpu = getPart('cpu');
+        const gpu = getPart('gpu');
+        const ram = getPart('mem') || getPart('ram');
+        const disk = getPart('disk');
+        const monitor = getPart('monitor');
+
+        const cpuRow = (cpu.rows && cpu.rows[0]) || {};
+        const gpuRow = (gpu.rows && gpu.rows[0]) || {};
+        const ramRow = (ram.rows && ram.rows[0]) || {};
+        const diskRow = (disk.rows && disk.rows[0]) || {};
+        const monitorRow = (monitor.rows && monitor.rows[0]) || {};
+
         return `
-          <div style="flex:1;background:#131b2e;border:1.5px solid ${color};border-radius:12px;padding:16px;box-sizing:border-box;">
-            <div style="font-size:18px;font-weight:900;color:${color};">${escapeHtml(f.nickname)}</div>
-            <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${escapeHtml(f.overall_title||'')} · ${escapeHtml(f.fun_tag||'')}</div>
-            <div style="font-size:24px;font-weight:900;color:#ffffff;margin:10px 0 6px;">${(f.total_score||0).toLocaleString()} <span style="font-size:12px;color:#94a3b8;">分</span></div>
-            <div style="font-size:12px;color:#cbd5e1;">二手: <span style="color:#f97316;font-weight:bold;">¥${(f.total_used||0).toLocaleString()}</span></div>
-            <div style="font-size:12px;color:#cbd5e1;">全新: <span style="color:#10b981;font-weight:bold;">¥${(f.total_new||0).toLocaleString()}</span></div>
-            <div style="margin-top:12px;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;font-size:12px;color:#cbd5e1;line-height:1.6;">
-              <div>⚡ ${escapeHtml((f.cpu_name||'-').split('(')[0])}</div>
-              <div>🎮 ${escapeHtml((f.gpu_name||'-').split('(')[0])}</div>
-              <div>🧠 ${escapeHtml(f.ram_desc||'-')}</div>
+          <div style="flex:1;background:#131b2e;border:2px solid ${color};border-radius:14px;padding:18px;box-sizing:border-box;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+              <div>
+                <div style="font-size:20px;font-weight:900;color:${color};">${escapeHtml(f.nickname)} ${isChamp ? '👑' : ''}</div>
+                <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${escapeHtml(f.overall_title||'')} · ${escapeHtml(f.fun_tag||'')}</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:24px;font-weight:900;color:#ffffff;line-height:1;">${(f.total_score||0).toLocaleString()}</div>
+                <div style="font-size:10px;color:#94a3b8;margin-top:2px;">综合得分</div>
+              </div>
             </div>
+
+            <!-- Price bar in fighter -->
+            <div style="display:flex;justify-content:space-between;background:rgba(255,255,255,0.04);padding:8px 12px;border-radius:8px;margin:12px 0;font-size:12px;">
+              <div>二手: <strong style="color:#f97316;">¥${(f.total_used||0).toLocaleString()}</strong></div>
+              <div>全新: <strong style="color:#10b981;">¥${(f.total_new||0).toLocaleString()}</strong></div>
+              <div>质价比: <strong style="color:#00f0ff;">${f.value_ratio||0}</strong></div>
+            </div>
+
+            <!-- 5 Parts -->
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:8px;">
+                <div style="display:flex;justify-content:space-between;font-size:10.5px;color:#00f0ff;font-weight:bold;">
+                  <span>⚡ 处理器 CPU</span>
+                  <span style="color:#f97316;">二手¥${cpuRow._eval ? cpuRow._eval.used : '-'}</span>
+                </div>
+                <div style="font-size:12.5px;font-weight:bold;color:#fff;margin-top:2px;">${escapeHtml((cpuRow.t || f.cpu_name || '-').split('(')[0])}</div>
+                <div style="font-size:10.5px;color:#94a3b8;">${escapeHtml(cpuRow.s || '')}</div>
+              </div>
+
+              <div style="background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:8px;">
+                <div style="display:flex;justify-content:space-between;font-size:10.5px;color:#00f0ff;font-weight:bold;">
+                  <span>🎮 显卡 GPU</span>
+                  <span style="color:#f97316;">二手¥${gpuRow._eval ? gpuRow._eval.used : '-'}</span>
+                </div>
+                <div style="font-size:12.5px;font-weight:bold;color:#fff;margin-top:2px;">${escapeHtml((gpuRow.t || f.gpu_name || '-').split('(')[0])}</div>
+                <div style="font-size:10.5px;color:#94a3b8;">${escapeHtml(gpuRow.s || '')}</div>
+              </div>
+
+              <div style="background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:8px;">
+                <div style="display:flex;justify-content:space-between;font-size:10.5px;color:#00f0ff;font-weight:bold;">
+                  <span>🧠 内存 RAM</span>
+                  <span style="color:#f97316;">二手¥${ramRow._eval ? ramRow._eval.used : '-'}</span>
+                </div>
+                <div style="font-size:12px;font-weight:bold;color:#fff;margin-top:2px;">${escapeHtml(ram.summary || ramRow.t || f.ram_desc || '-')}</div>
+              </div>
+
+              <div style="background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:8px;">
+                <div style="display:flex;justify-content:space-between;font-size:10.5px;color:#00f0ff;font-weight:bold;">
+                  <span>💾 硬盘 SSD</span>
+                  <span style="color:#f97316;">二手¥${diskRow._eval ? diskRow._eval.used : '-'}</span>
+                </div>
+                <div style="font-size:12px;font-weight:bold;color:#fff;margin-top:2px;">${escapeHtml(diskRow.t || '-')}</div>
+              </div>
+
+              <div style="background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:8px;">
+                <div style="display:flex;justify-content:space-between;font-size:10.5px;color:#00f0ff;font-weight:bold;">
+                  <span>🖥️ 显示器</span>
+                  <span style="color:#f97316;">二手¥${monitorRow._eval ? monitorRow._eval.used : '-'}</span>
+                </div>
+                <div style="font-size:12px;font-weight:bold;color:#fff;margin-top:2px;">${escapeHtml(monitorRow.t || '-')}</div>
+                <div style="font-size:10.5px;color:#94a3b8;">${escapeHtml(monitorRow.s || '')}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // 10项对比条 HTML (在海报内)
+      const metricsConfig = [
+        { label: '综合战力分', key: 'total_score', fmt: n => n.toLocaleString() + ' 分' },
+        { label: 'CPU 性能分', key: 'cpu_score', fmt: n => n.toLocaleString() + ' 分' },
+        { label: 'GPU 显卡分', key: 'gpu_score', fmt: n => n.toLocaleString() + ' 分' },
+        { label: '二手市场残值', key: 'total_used', fmt: n => '¥' + n.toLocaleString() },
+        { label: '质价比指数', key: 'value_ratio', fmt: n => n },
+        { label: '显卡显存', getter: f => (f.report && f.report.metrics && f.report.metrics.gpu_vram_gb) || 8, fmt: n => n + ' GB' },
+        { label: '内存容量', getter: f => (f.report && f.report.metrics && f.report.metrics.ram_gb) || 16, fmt: n => n + ' GB' },
+        { label: '屏幕刷新率', getter: f => (f.report && f.report.metrics && f.report.metrics.monitor_hz) || 60, fmt: n => n + ' Hz' }
+      ];
+
+      const metricsPosterHtml = metricsConfig.map(m => {
+        const vals = fighters.map(f => m.getter ? m.getter(f) : (f[m.key] || 0));
+        const maxVal = Math.max(...vals, 1);
+        const bars = fighters.map((f, i) => {
+          const v = vals[i];
+          const pct = Math.max(10, Math.round((v / maxVal) * 100));
+          const color = THEME_COLORS[i % 4];
+          const isWin = (v === maxVal && v > 0);
+          return `
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <span style="width:80px;font-size:11px;font-weight:bold;color:${color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(f.nickname)}</span>
+              <div style="flex-grow:1;height:10px;background:rgba(255,255,255,0.06);border-radius:5px;overflow:hidden;">
+                <div style="width:${pct}%;height:100%;background:${color};border-radius:5px;"></div>
+              </div>
+              <span style="width:85px;font-size:11px;font-weight:bold;color:${isWin ? '#fde047' : '#ffffff'};text-align:right;">${m.fmt(v)} ${isWin ? '👑' : ''}</span>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div style="display:grid;grid-template-columns:100px 1fr;gap:12px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+            <div style="font-size:12px;font-weight:bold;color:#cbd5e1;">${m.label}</div>
+            <div>${bars}</div>
           </div>
         `;
       }).join('');
 
       const sandbox = document.getElementById('posterSandbox');
       sandbox.innerHTML = `
-        <div id="renderTargetPk" style="width:760px;padding:32px;background:#0b0f19;font-family:'Microsoft YaHei UI',sans-serif;color:#f1f5f9;box-sizing:border-box;">
+        <div id="renderTargetPk" style="width:860px;padding:34px;background:#0b0f19;font-family:'Microsoft YaHei UI',sans-serif;color:#f1f5f9;box-sizing:border-box;">
+          <!-- Poster Top Header -->
           <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #00f0ff;padding-bottom:16px;margin-bottom:20px;">
             <div>
               <div style="font-size:11px;font-weight:bold;letter-spacing:2px;color:#00f0ff;">HARDWARESHOT CLOUD ARENA</div>
-              <div style="font-size:24px;font-weight:900;color:#ffffff;margin-top:4px;">⚔️ 硬件配置多机对决战报</div>
+              <div style="font-size:26px;font-weight:900;color:#ffffff;margin-top:4px;">⚔️ 全服电脑配置巅峰对决战报</div>
             </div>
             <div style="font-size:12px;color:#94a3b8;text-align:right;">
-              <div>全服风云对决</div>
-              <div>https://pc.alonglfb.com</div>
+              <div style="color:#00f0ff;font-weight:bold;">https://pc.alonglfb.com</div>
+              <div style="margin-top:3px;">对决时间: ${new Date().toLocaleString()}</div>
+            </div>
+          </div>
+
+          <!-- Champion Showcase in Poster -->
+          <div style="background:linear-gradient(135deg, rgba(253,224,71,0.18), rgba(249,115,22,0.15));border:2px solid #fde047;border-radius:14px;padding:18px 22px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;">
+            <div style="display:flex;align-items:center;gap:16px;">
+              <div style="font-size:42px;">🏆</div>
+              <div>
+                <div style="font-size:22px;font-weight:900;color:#ffffff;">
+                  👑 本场对决总冠军：【${escapeHtml(bestScore.nickname)}】
+                </div>
+                <div style="font-size:12px;color:#cbd5e1;margin-top:4px;">
+                  ${escapeHtml(bestScore.overall_title||'')} · ${escapeHtml(bestScore.fun_tag||'')}
+                </div>
+                <div style="display:flex;gap:8px;margin-top:8px;">
+                  ${champAdvTags.map(t=>`<span style="background:rgba(253,224,71,0.15);border:1px solid #fde047;color:#fde047;font-size:11px;font-weight:bold;padding:2px 8px;border-radius:4px;">${escapeHtml(t)}</span>`).join('')}
+                </div>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:12px;color:#94a3b8;">总冠军战力分</div>
+              <div style="font-size:34px;font-weight:900;color:#fde047;line-height:1;">${(bestScore.total_score||0).toLocaleString()} <span style="font-size:14px;">分</span></div>
+              <div style="font-size:12px;color:#f97316;margin-top:3px;">二手估值 ≈ ¥${(bestScore.total_used||0).toLocaleString()}</div>
+            </div>
+          </div>
+
+          <!-- 4 Kings Grid -->
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;">
+            <div style="background:#131b2e;padding:10px 12px;border-radius:10px;border:1px solid #243252;">
+              <div style="font-size:11px;color:#94a3b8;">👑 综合总冠军</div>
+              <div style="font-size:13px;font-weight:bold;color:#fde047;margin-top:2px;">${escapeHtml(bestScore.nickname)}</div>
+              <div style="font-size:11px;color:#cbd5e1;">${(bestScore.total_score||0).toLocaleString()} 分</div>
+            </div>
+            <div style="background:#131b2e;padding:10px 12px;border-radius:10px;border:1px solid #243252;">
+              <div style="font-size:11px;color:#94a3b8;">💰 质价比神机</div>
+              <div style="font-size:13px;font-weight:bold;color:#00f0ff;margin-top:2px;">${escapeHtml(bestRatio.nickname)}</div>
+              <div style="font-size:11px;color:#cbd5e1;">指数 ${bestRatio.value_ratio}</div>
+            </div>
+            <div style="background:#131b2e;padding:10px 12px;border-radius:10px;border:1px solid #243252;">
+              <div style="font-size:11px;color:#94a3b8;">⚡ 最强 CPU</div>
+              <div style="font-size:13px;font-weight:bold;color:#10b981;margin-top:2px;">${escapeHtml(bestCpu.nickname)}</div>
+              <div style="font-size:11px;color:#cbd5e1;">${escapeHtml((bestCpu.cpu_name||'-').split('(')[0])}</div>
+            </div>
+            <div style="background:#131b2e;padding:10px 12px;border-radius:10px;border:1px solid #243252;">
+              <div style="font-size:11px;color:#94a3b8;">🎮 最强显卡</div>
+              <div style="font-size:13px;font-weight:bold;color:#f97316;margin-top:2px;">${escapeHtml(bestGpu.nickname)}</div>
+              <div style="font-size:11px;color:#cbd5e1;">${escapeHtml((bestGpu.gpu_name||'-').split('(')[0])}</div>
             </div>
           </div>
 
@@ -1604,10 +2070,21 @@
             ${fightersHtml}
           </div>
 
+          <!-- 10 Metric Bars in Poster -->
+          <div style="background:#131b2e;border:1px solid #243252;border-radius:14px;padding:18px;margin-bottom:20px;">
+            <div style="font-size:14px;font-weight:bold;color:#00f0ff;margin-bottom:12px;">📊 核心战力指标横向对照</div>
+            ${metricsPosterHtml}
+          </div>
+
+          <!-- Commentary in Poster -->
+          <div style="background:rgba(0,240,255,0.06);border:1px dashed #00f0ff;border-radius:10px;padding:12px 16px;font-size:12.5px;color:#e2e8f0;line-height:1.6;margin-bottom:20px;">
+            <strong style="color:#00f0ff;">📢 对决战况裁决:</strong> ${escapeHtml(commentary)}
+          </div>
+
           <!-- Bottom Footer -->
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;font-size:11px;color:#64748b;border-top:1px solid rgba(255,255,255,0.08);padding-top:12px;">
-            <div>扫码或访问网址即可直接加载当前对战双方进行复盘</div>
-            <div>对决专属链接: https://pc.alonglfb.com/?pk=${fighters.map(f=>f.id).join(',')}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#64748b;border-top:1px solid rgba(255,255,255,0.08);padding-top:14px;">
+            <div>本战报由 HardwareShot 云端智能竞技场生成 · 扫码或访问专属链接即可复盘</div>
+            <div style="color:#00f0ff;">对决复盘: https://pc.alonglfb.com/?pk=${fighters.map(f=>f.id).join(',')}</div>
           </div>
         </div>
       `;
@@ -1617,7 +2094,7 @@
         const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#0b0f19' });
         canvas.toBlob(blob => {
           generatedBlob = blob;
-          generatedFileName = `硬件PK战报_${fighters.map(f=>f.nickname).join('_VS_')}.png`;
+          generatedFileName = `硬件PK巅峰战报_${fighters.map(f=>f.nickname).join('_VS_')}.png`;
           const url = URL.createObjectURL(blob);
           document.getElementById('posterPreviewImg').src = url;
           document.getElementById('posterModal').classList.add('open');
