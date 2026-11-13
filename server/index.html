@@ -1112,6 +1112,24 @@
       };
     }
 
+    function formatRelativeTime(dateStr) {
+      if (!dateStr) return '未知时间';
+      try {
+        const normalized = dateStr.replace(/-/g, '/');
+        const d = new Date(normalized);
+        if (isNaN(d.getTime())) return dateStr;
+        const now = new Date();
+        const diffSec = Math.floor((now - d) / 1000);
+        if (diffSec < 45) return '刚刚上传';
+        if (diffSec < 3600) return `${Math.floor(diffSec / 60)} 分钟前`;
+        if (diffSec < 86400) return `${Math.floor(diffSec / 3600)} 小时前`;
+        if (diffSec < 86400 * 7) return `${Math.floor(diffSec / 86400)} 天前`;
+        return dateStr.slice(0, 16);
+      } catch (e) {
+        return dateStr;
+      }
+    }
+
     // Global State
     let allConfigs = [];
     let currentSort = 'score';
@@ -1251,7 +1269,11 @@
                 <span class="tier-badge tier-${item.overall_tier || 'T2'}">${escapeHtml(item.overall_tier || 'T2')}</span>
                 ${item.fun_tag ? `<span class="fun-badge">${escapeHtml(item.fun_tag)}</span>` : ''}
               </div>
-              <div class="player-sub">${escapeHtml(item.model || '台式电脑')} · ${escapeHtml(item.scan_time || '')}</div>
+              <div class="player-sub">
+                ${escapeHtml(item.model || '台式电脑')} · 
+                <span style="color:var(--cyan);font-weight:700;">⏱️ ${formatRelativeTime(item.updated_at || item.scan_time)}</span>
+                <span style="color:#64748b;font-size:11px;" title="上传时间: ${escapeHtml(item.updated_at || item.scan_time || '')}">(${escapeHtml((item.updated_at || item.scan_time || '').slice(0, 16))})</span>
+              </div>
             </div>
 
             <!-- Hardware Specs -->
@@ -1555,6 +1577,9 @@
                   ${isChamp ? '👑' : ''}
                 </h3>
                 <p>${escapeHtml(f.overall_title || f.overall_tier || 'T2')} · ${escapeHtml(f.fun_tag || '')}</p>
+                <div style="font-size:11px;color:#94a3b8;margin-top:2px;">
+                  ☁️ 上传于: <strong style="color:var(--cyan);">${escapeHtml(f.updated_at || f.scan_time || '')}</strong> (${formatRelativeTime(f.updated_at || f.scan_time)})
+                </div>
               </div>
               <div class="fighter-score-box">
                 <div class="fighter-score-num">${(f.total_score||0).toLocaleString()}</div>
@@ -1742,9 +1767,12 @@
           <span class="tier-badge tier-${cfg.overall_tier||'T2'}">${escapeHtml(cfg.overall_tier||'T2')}</span>
           ${cfg.fun_tag ? `<span class="fun-badge">${escapeHtml(cfg.fun_tag)}</span>` : ''}
         </div>
-        <p style="font-size:12.5px;color:var(--sub);margin-top:4px;">
-          ${escapeHtml(cfg.model||'台式电脑')} · 扫描时间: ${escapeHtml(cfg.scan_time||'')} · 段位: ${escapeHtml(cfg.overall_title||'')}
-        </p>
+        <div style="font-size:12.5px;color:var(--sub);margin-top:4px;display:flex;gap:12px;flex-wrap:wrap;">
+          <span>💻 型号: ${escapeHtml(cfg.model||'台式电脑')}</span>
+          <span>段位: ${escapeHtml(cfg.overall_title||'')}</span>
+          <span>🖥️ 扫描时间: ${escapeHtml(cfg.scan_time||'-')}</span>
+          <span style="color:var(--cyan);font-weight:700;">☁️ 上传时间: ${escapeHtml(cfg.updated_at || cfg.scan_time || '-')} (${formatRelativeTime(cfg.updated_at || cfg.scan_time)})</span>
+        </div>
 
         <!-- Fun Tag Description -->
         ${cfg.fun_desc ? `
@@ -1863,8 +1891,8 @@
           </div>
 
           <!-- Poster Footer -->
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;font-size:11px;color:#64748b;">
-            <div>扫描时间: ${escapeHtml(cfg.scan_time||'')} · 生成于 HardwareShot 云端天梯榜</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;font-size:11px;color:#64748b;flex-wrap:wrap;gap:8px;">
+            <div>☁️ 上传: ${escapeHtml(cfg.updated_at || cfg.scan_time || '')} (${formatRelativeTime(cfg.updated_at || cfg.scan_time)}) · 🖥️ 扫描: ${escapeHtml(cfg.scan_time||'')}</div>
             <div>https://pc.alonglfb.com/?id=${cfg.id}</div>
           </div>
         </div>
@@ -2038,6 +2066,7 @@
               <div>
                 <div style="font-size:20px;font-weight:900;color:${color};">${escapeHtml(f.nickname)} ${isChamp ? '👑' : ''}</div>
                 <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${escapeHtml(f.overall_title||'')} · ${escapeHtml(f.fun_tag||'')}</div>
+                <div style="font-size:10px;color:#38bdf8;margin-top:2px;">⏱️ 上传: ${escapeHtml((f.updated_at || f.scan_time || '').slice(0, 16))} (${formatRelativeTime(f.updated_at || f.scan_time)})</div>
               </div>
               <div style="text-align:right;">
                 <div style="font-size:24px;font-weight:900;color:#ffffff;line-height:1;">${(f.total_score||0).toLocaleString()}</div>

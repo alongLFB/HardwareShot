@@ -38,15 +38,41 @@ def make_icon(path):
 def main():
     ico = os.path.join(HERE, 'app.ico')
     make_icon(ico)
+    ver_file = os.path.join(HERE, 'version_info.txt')
     for d in ('build', 'dist'):
         shutil.rmtree(os.path.join(HERE, d), ignore_errors=True)
-    subprocess.check_call([sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean', '--onefile', '--windowed',
-                           '--name', NAME, '--icon', ico, '--exclude-module', 'numpy', '--exclude-module', 'matplotlib',
-                           'main.py'])
+    cmd = [
+        sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean', '--onefile', '--windowed',
+        '--name', NAME, '--icon', ico,
+        '--version-file', ver_file,
+        '--exclude-module', 'numpy', '--exclude-module', 'matplotlib',
+        'main.py'
+    ]
+    subprocess.check_call(cmd)
     pkg = os.path.join(HERE, 'dist', NAME)
     os.makedirs(pkg, exist_ok=True)
     shutil.move(os.path.join(HERE, 'dist', NAME + '.exe'), os.path.join(pkg, NAME + '.exe'))
     shutil.copy(os.path.join(HERE, 'README.txt'), os.path.join(pkg, '使用说明.txt'))
+
+    bat_path = os.path.join(pkg, '一键解除拦截运行.bat')
+    bat_content = (
+        "@echo off\r\n"
+        "chcp 65001 >nul\r\n"
+        "title 硬件配置助手 - 解除 Windows 拦截保护\r\n"
+        "cd /d \"%~dp0\"\r\n"
+        "echo ========================================================\r\n"
+        "echo   硬件配置助手 - 一键解除 Windows 智能拦截保护\r\n"
+        "echo ========================================================\r\n"
+        "echo.\r\n"
+        "echo 正在解除下载锁定保护 (Unblock-File)... \r\n"
+        "powershell -NoProfile -Command \"Unblock-File -Path '.\\硬件配置助手.exe' -ErrorAction SilentlyContinue\"\r\n"
+        "echo 解除完成！正在为您启动硬件配置助手...\r\n"
+        "echo.\r\n"
+        "start \"\" \"硬件配置助手.exe\"\r\n"
+    )
+    with open(bat_path, 'w', encoding='utf-8') as f:
+        f.write(bat_content)
+
     zp = os.path.join(HERE, 'dist', NAME + '.zip')
     with zipfile.ZipFile(zp, 'w', zipfile.ZIP_DEFLATED) as z:
         for f in os.listdir(pkg):

@@ -19,6 +19,8 @@ import renderer
 import winutil
 
 APP_NAME = '硬件配置助手'
+CURRENT_VERSION = '2.1.0'
+CURRENT_VERSION_CODE = 210
 SIDE_BG = '#0A56D8'
 SIDE_HOVER = '#2C74F0'
 GREEN = '#16C47F'
@@ -128,7 +130,7 @@ class ToastNotification:
         self.frame = None
         self._timer = None
 
-    def show(self, title, message='', path=None, is_error=False, duration=3500, url=None):
+    def show(self, title, message='', path=None, is_error=False, duration=3500, url=None, action_text=None, action_cmd=None):
         if self._timer:
             self.parent.after_cancel(self._timer)
             self._timer = None
@@ -160,6 +162,14 @@ class ToastNotification:
 
         btns = tk.Frame(row1, bg='#181F2C')
         btns.pack(side='right', padx=(px(16), 0))
+
+        if action_text and action_cmd:
+            b_act = tk.Label(btns, text=action_text, bg='#0A56D8', fg='white', font=f(9, True),
+                             cursor='hand2', padx=px(8), pady=px(2))
+            b_act.pack(side='left', padx=(0, px(6)))
+            b_act.bind('<Enter>', lambda e, w=b_act: w.config(bg='#2C74F0'))
+            b_act.bind('<Leave>', lambda e, w=b_act: w.config(bg='#0A56D8'))
+            b_act.bind('<Button-1>', lambda e: (self.hide(), action_cmd()))
 
         if url:
             b_url = tk.Label(btns, text='🌐 打开 PK 网页', bg='#16C47F', fg='white', font=f(9, True),
@@ -247,6 +257,7 @@ class App:
         self._bind_keys()
         self.root.protocol('WM_DELETE_WINDOW', self.on_close)
         self.root.after(200, self.start_scan)
+        self.root.after(1500, lambda: self.check_update_async(silent=True))
 
     def px(self, n):
         return int(n * self.k)
@@ -282,6 +293,8 @@ class App:
         btn('导出配置文件 (.json)', self.export_json)
         btn('导入好友配置 → 对比', self.import_friend)
         btn('返回本机配置', self.back_local)
+        tk.Frame(side, bg='#2C74F0', height=1).pack(fill='x', padx=px(16), pady=px(5))
+        btn(f'关于 / 检查更新 (v{CURRENT_VERSION})', lambda: self.check_update_async(silent=False))
         tk.Frame(side, bg='#2C74F0', height=1).pack(fill='x', padx=px(16), pady=px(5))
 
         box = tk.Frame(side, bg=SIDE_BG)
@@ -592,7 +605,7 @@ class App:
                     data=payload,
                     headers={
                         'Content-Type': 'application/json; charset=utf-8',
-                        'User-Agent': 'HardwareShot-Client/2.0',
+                        'User-Agent': f'HardwareShot-Client/{CURRENT_VERSION}',
                     },
                     method='POST',
                 )
@@ -645,7 +658,7 @@ class App:
         self.set_status(f'正在从云端 ({srv}) 获取天梯榜玩家配置…')
 
         try:
-            req = urllib.request.Request(f'{srv}/api/configs', headers={'User-Agent': 'HardwareShot-Client/2.0'})
+            req = urllib.request.Request(f'{srv}/api/configs', headers={'User-Agent': f'HardwareShot-Client/{CURRENT_VERSION}'})
             with urllib.request.urlopen(req, timeout=10) as r:
                 resp = json.loads(r.read().decode('utf-8', errors='ignore'))
             items = resp.get('items', [])
@@ -685,7 +698,7 @@ class App:
 
         def load_opponent(cid, cnick):
             try:
-                r2 = urllib.request.Request(f'{srv}/api/config/{cid}', headers={'User-Agent': 'HardwareShot-Client/2.0'})
+                r2 = urllib.request.Request(f'{srv}/api/config/{cid}', headers={'User-Agent': f'HardwareShot-Client/{CURRENT_VERSION}'})
                 with urllib.request.urlopen(r2, timeout=10) as res:
                     d2 = json.loads(res.read().decode('utf-8', errors='ignore'))
                 rep = d2.get('report')
@@ -772,6 +785,138 @@ class App:
         self.canvas.yview_moveto(0)
         self.set_status('已返回本机配置')
         self.toast.show('已返回本机配置', '当前展示本机硬件配置与估值预览', duration=2000)
+
+    # ------------------------------------------------------------ 版本更新检测与关于
+    def check_update_async(self, silent=True):
+        srv = (self.s.get('pk_server_url') or 'https://pc.alonglfb.com').rstrip('/')
+        if not silent:
+            self.set_status('正在检查最新版本…')
+
+        uq = queue.Queue()
+
+        def fetch():
+            try:
+                req = urllib.request.Request(
+                    f'{srv}/api/version',
+                    headers={'User-Agent': f'HardwareShot-Client/{CURRENT_VERSION}'}
+                )
+                with urllib.request.urlopen(req, timeout=5) as r:
+                    data = json.loads(r.read().decode('utf-8', errors='ignore'))
+                uq.put(('ok', data))
+            except Exception as ex:
+                uq.put(('err', str(ex)))
+
+        threading.Thread(target=fetch, daemon=True).start()
+
+        def poll():
+            try:
+                kind, val = uq.get_nowait()
+                if kind == 'ok' and val.get('ok'):
+                    remote_ver = val.get('version', '')
+                    remote_code = val.get('version_code', 0)
+                    if remote_code > CURRENT_VERSION_CODE:
+                        self.set_status(f'发现新版本 v{remote_ver}！')
+                        if silent:
+                            feats = val.get('features', [])
+                            feat_summary = feats[0] if feats else '点击查看更新说明'
+                            self.toast.show(
+                                f'发现新版本 v{remote_ver}',
+                                f'当前: v{CURRENT_VERSION} · {feat_summary}',
+                                duration=10000,
+                                action_text='查看更新',
+                                action_cmd=lambda: self.show_version_dialog(val)
+                            )
+                        else:
+                            self.show_version_dialog(val)
+                    else:
+                        if not silent:
+                            self.set_status(f'当前已是最新版本 (v{CURRENT_VERSION})')
+                            self.show_version_dialog(val, is_latest=True)
+                else:
+                    if not silent:
+                        err = val if isinstance(val, str) else '网络异常或服务器未响应'
+                        self.set_status(f'检查更新失败: {err}')
+                        self.toast.show('检查更新失败', f'服务器: {srv} ({err})', is_error=True)
+                return
+            except queue.Empty:
+                pass
+            self.root.after(100, poll)
+
+        self.root.after(100, poll)
+
+    def show_version_dialog(self, info, is_latest=False):
+        px = self.px
+        f = lambda sz, b=False: (FONT, sz, 'bold') if b else (FONT, sz)
+        win = tk.Toplevel(self.root)
+        win.title(f'版本信息与更新 - {APP_NAME}')
+        win.geometry(f'{px(580)}x{px(520)}')
+        win.configure(bg='#F8FAFC')
+        win.transient(self.root)
+        win.grab_set()
+
+        top_bg = '#0F172A'
+        top_card = tk.Frame(win, bg=top_bg, padx=px(24), pady=px(18))
+        top_card.pack(fill='x')
+
+        r0 = tk.Frame(top_card, bg=top_bg)
+        r0.pack(fill='x')
+        tk.Label(r0, text=APP_NAME, bg=top_bg, fg='white', font=f(16, True)).pack(side='left')
+
+        tag_text = ' 已是最新版本 ' if is_latest else f" 发现新版本 v{info.get('version', '')} "
+        tag_bg = '#10B981' if is_latest else '#F59E0B'
+        tk.Label(r0, text=tag_text, bg=tag_bg, fg='white', font=f(9, True), padx=px(6), pady=px(2)).pack(side='left', padx=px(10))
+
+        v_sub = f"当前运行版本: v{CURRENT_VERSION}"
+        if not is_latest:
+            v_sub += f"   →   最新版本: v{info.get('version', '')}  (发布于 {info.get('release_date', '')})"
+        tk.Label(top_card, text=v_sub, bg=top_bg, fg='#94A3B8', font=f(10)).pack(anchor='w', pady=(px(6), 0))
+
+        body = tk.Frame(win, bg='#F8FAFC', padx=px(20), pady=px(14))
+        body.pack(fill='both', expand=True)
+
+        card = tk.Frame(body, bg='white', padx=px(16), pady=px(14), highlightthickness=1, highlightbackground='#E2E8F0')
+        card.pack(fill='both', expand=True)
+
+        tk.Label(card, text='✨ 本次更新与新功能特性 (What’s New)', bg='white', fg='#1E293B', font=f(11, True)).pack(anchor='w', pady=(0, px(8)))
+
+        c_frame = tk.Frame(card, bg='white')
+        c_frame.pack(fill='both', expand=True)
+        cv = tk.Canvas(c_frame, bg='white', highlightthickness=0)
+        vsb = ttk.Scrollbar(c_frame, orient='vertical', command=cv.yview)
+        vsb.pack(side='right', fill='y')
+        cv.pack(side='left', fill='both', expand=True)
+        cv.configure(yscrollcommand=vsb.set)
+        inner = tk.Frame(cv, bg='white')
+        inner_id = cv.create_window((0, 0), window=inner, anchor='nw')
+        inner.bind('<Configure>', lambda e: cv.configure(scrollregion=cv.bbox('all')))
+        cv.bind('<Configure>', lambda e: cv.itemconfig(inner_id, width=e.width))
+
+        features = info.get('features', [])
+        if not features and info.get('changelog'):
+            features = [info.get('changelog')]
+
+        for feat in features:
+            f_row = tk.Frame(inner, bg='white', pady=px(4))
+            f_row.pack(fill='x')
+            tk.Label(f_row, text='✦', bg='white', fg='#0A56D8', font=f(10, True)).pack(side='left', anchor='n', padx=(0, px(6)))
+            tk.Label(f_row, text=feat, bg='white', fg='#334155', font=f(10), wraplength=px(440), justify='left').pack(side='left', fill='x', expand=True)
+
+        bot_bar = tk.Frame(win, bg='#F1F5F9', padx=px(20), pady=px(12), highlightthickness=1, highlightbackground='#E2E8F0')
+        bot_bar.pack(fill='x', side='bottom')
+
+        def open_dl():
+            url = info.get('download_url') or info.get('web_url') or 'https://pc.alonglfb.com'
+            webbrowser.open(url)
+            win.destroy()
+
+        def open_web():
+            url = info.get('web_url') or 'https://pc.alonglfb.com'
+            webbrowser.open(url)
+
+        if not is_latest:
+            FlatButton(bot_bar, '⚡ 立即前往下载新版', open_dl, bg=GREEN, hover=GREEN_HOVER, font=f(10, True), padx=px(14), pady=px(6)).pack(side='right', padx=(px(8), 0))
+        FlatButton(bot_bar, '🌐 访问云端竞技场', open_web, bg='#0A56D8', hover='#2C74F0', font=f(10), padx=px(12), pady=px(6)).pack(side='right', padx=(px(8), 0))
+        FlatButton(bot_bar, '关闭', win.destroy, bg='#64748B', hover='#475569', font=f(10), padx=px(14), pady=px(6)).pack(side='left')
 
     # ------------------------------------------------------------ 联网精准估值 & 手动改价弹窗
     def start_online_price(self, force_channel=None):

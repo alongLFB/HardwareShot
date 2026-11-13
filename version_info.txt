@@ -1,0 +1,37 @@
+# UTF-8
+#
+# Version Information for HardwareShot
+#
+VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers=(2, 1, 0, 0),
+    prodvers=(2, 1, 0, 0),
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0, 0)
+  ),
+  kids=[
+    StringFileInfo(
+      [
+        StringTable(
+          '080404b0',
+          [
+            StringStruct('CompanyName', 'HardwareShot Studio'),
+            StringStruct('FileDescription', '硬件配置助手 - 电脑配置一键扫描/估值/天梯榜/双轨PK神器'),
+            StringStruct('FileVersion', '2.1.0.0'),
+            StringStruct('InternalName', '硬件配置助手'),
+            StringStruct('LegalCopyright', 'Copyright (C) 2026 HardwareShot OpenSource'),
+            StringStruct('OriginalFilename', '硬件配置助手.exe'),
+            StringStruct('ProductName', '硬件配置助手'),
+            StringStruct('ProductVersion', '2.1.0.0')
+          ]
+        )
+      ]
+    ),
+    VarFileInfo([VarStruct('Translation', [2052, 1200])])
+  ]
+)
+

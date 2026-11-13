@@ -491,6 +491,27 @@ class Handler(BaseHTTPRequestHandler):
         p = urllib.parse.unquote(parsed.path)
         if p == '/api/configs':
             return self._send_json({'ok': True, 'items': list_configs()})
+        if p == '/api/version':
+            host = self.headers.get('Host') or 'pc.alonglfb.com'
+            proto = self.headers.get('X-Forwarded-Proto') or 'https'
+            base_url = f'{proto}://{host}'
+            return self._send_json({
+                'ok': True,
+                'version': '2.1.0',
+                'version_code': 210,
+                'release_date': '2026-11-14',
+                'download_url': f'{base_url}/download/%E7%A1%AC%E4%BB%B6%E9%85%8D%E7%BD%AE%E5%8A%A9%E6%89%8B.zip',
+                'web_url': f'{base_url}/',
+                'features': [
+                    '新增云端多机横向 PK 竞技场 (支持 2~4 台电脑同屏大乱斗)',
+                    '新增多显卡智能甄选 (优先主力独显出战，避免核显冒充)',
+                    '新增多硬盘总容量聚合与多盘结构清单对比',
+                    '新增对决开场动画、全屏撒花粒子与冠军登顶特写',
+                    '新增赛博电竞战报长图海报一键复制与下载',
+                    '新增云端上传配置时间戳与人性化相对时间标记'
+                ],
+                'changelog': '全新升级多硬件实例对比与战报长图，支持多显卡智能甄选与多硬盘聚合。'
+            })
         if p == '/api/admin/configs':
             if not self._verify_admin():
                 return self._send_json({'ok': False, 'error': '未授权或管理密钥错误'}, 403)
