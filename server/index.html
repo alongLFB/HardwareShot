@@ -459,7 +459,29 @@
       border: 1px solid rgba(236,72,153,0.4);
       white-space: nowrap;
     }
-    .player-sub { font-size: 12px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .player-sub { font-size: 12px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+    .player-time {
+      font-size: 11.5px;
+      color: #94a3b8;
+      margin-top: 3px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .player-time .time-tag {
+      color: var(--cyan);
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .player-time .time-exact {
+      color: #64748b;
+      font-size: 11px;
+    }
 
     /* Hardware Specs Pills */
     .specs-col { display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
@@ -1269,10 +1291,12 @@
                 <span class="tier-badge tier-${item.overall_tier || 'T2'}">${escapeHtml(item.overall_tier || 'T2')}</span>
                 ${item.fun_tag ? `<span class="fun-badge">${escapeHtml(item.fun_tag)}</span>` : ''}
               </div>
-              <div class="player-sub">
-                ${escapeHtml(item.model || '台式电脑')} · 
-                <span style="color:var(--cyan);font-weight:700;">⏱️ ${formatRelativeTime(item.updated_at || item.scan_time)}</span>
-                <span style="color:#64748b;font-size:11px;" title="上传时间: ${escapeHtml(item.updated_at || item.scan_time || '')}">(${escapeHtml((item.updated_at || item.scan_time || '').slice(0, 16))})</span>
+              <div class="player-sub" title="机型: ${escapeHtml(item.model || '台式电脑')}">
+                💻 ${escapeHtml(item.model || '台式电脑')}
+              </div>
+              <div class="player-time" title="上传时间: ${escapeHtml(item.updated_at || item.scan_time || '')}">
+                <span class="time-tag">⏱️ ${formatRelativeTime(item.updated_at || item.scan_time)}</span>
+                <span class="time-exact">(${escapeHtml((item.updated_at || item.scan_time || '').slice(0, 16))})</span>
               </div>
             </div>
 
@@ -1767,11 +1791,15 @@
           <span class="tier-badge tier-${cfg.overall_tier||'T2'}">${escapeHtml(cfg.overall_tier||'T2')}</span>
           ${cfg.fun_tag ? `<span class="fun-badge">${escapeHtml(cfg.fun_tag)}</span>` : ''}
         </div>
-        <div style="font-size:12.5px;color:var(--sub);margin-top:4px;display:flex;gap:12px;flex-wrap:wrap;">
-          <span>💻 型号: ${escapeHtml(cfg.model||'台式电脑')}</span>
-          <span>段位: ${escapeHtml(cfg.overall_title||'')}</span>
-          <span>🖥️ 扫描时间: ${escapeHtml(cfg.scan_time||'-')}</span>
-          <span style="color:var(--cyan);font-weight:700;">☁️ 上传时间: ${escapeHtml(cfg.updated_at || cfg.scan_time || '-')} (${formatRelativeTime(cfg.updated_at || cfg.scan_time)})</span>
+        <div style="font-size:12.5px;color:var(--sub);margin-top:6px;display:flex;flex-direction:column;gap:4px;">
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <span>💻 型号: ${escapeHtml(cfg.model||'台式电脑')}</span>
+            <span>🏆 段位: ${escapeHtml(cfg.overall_title||'')}</span>
+            <span>🖥️ 扫描时间: ${escapeHtml(cfg.scan_time||'-')}</span>
+          </div>
+          <div style="color:var(--cyan);font-weight:700;">
+            ☁️ 上传时间: ${escapeHtml(cfg.updated_at || cfg.scan_time || '-')} <span style="color:#94a3b8;font-weight:normal;font-size:11.5px;">(${formatRelativeTime(cfg.updated_at || cfg.scan_time)})</span>
+          </div>
         </div>
 
         <!-- Fun Tag Description -->
